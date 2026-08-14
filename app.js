@@ -356,12 +356,41 @@ color:#fff;font-weight:800;cursor:pointer;text-decoration:none;white-space:nowra
   }
 
   function bindStructure(){
+    let found=false;
     document.querySelectorAll("a,button").forEach(function(el){
-      if(/struktur bpd/i.test(el.textContent||"") && !el.dataset.structureBound){
-        el.dataset.structureBound="1";
-        el.addEventListener("click",function(e){e.preventDefault();showStructure();});
+      if(/struktur bpd/i.test(el.textContent||"")){
+        found=true;
+        if(!el.dataset.structureBound){
+          el.dataset.structureBound="1";
+          el.addEventListener("click",function(e){e.preventDefault();showStructure();});
+        }
       }
     });
+
+    // If the current navigation has no Structure menu, add one automatically.
+    if(!found && !document.getElementById("structureMenuButton")){
+      const host=document.querySelector("nav") || document.querySelector("header") || document.body;
+      const btn=document.createElement("a");
+      btn.id="structureMenuButton";
+      btn.href="#struktur";
+      btn.textContent="Struktur BPD";
+      btn.style.cssText="display:inline-flex;align-items:center;margin:6px 8px;padding:9px 13px;border-radius:9px;text-decoration:none;font-weight:700;color:#123d2d;background:#eef5f1;border:1px solid #dce8e1;cursor:pointer;";
+      btn.addEventListener("click",function(e){e.preventDefault();showStructure();});
+      host.appendChild(btn);
+    }
+
+    // Also expose a floating shortcut so the page can be opened even if
+    // the site's existing navigation is dynamically rendered.
+    if(!document.getElementById("structureFloatingButton")){
+      const fb=document.createElement("button");
+      fb.id="structureFloatingButton";
+      fb.type="button";
+      fb.textContent="👥 Struktur BPD";
+      fb.style.cssText="position:fixed;right:18px;bottom:18px;z-index:5000;border:0;border-radius:12px;padding:12px 15px;background:#123d2d;color:#fff;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:pointer;";
+      fb.addEventListener("click",showStructure);
+      document.body.appendChild(fb);
+    }
+
     if(location.hash.toLowerCase()==="#struktur") showStructure();
   }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",bindStructure);
