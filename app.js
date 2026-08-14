@@ -109,6 +109,97 @@ $("#checkForm").onsubmit = async (e) => {
     : '<div class="result">Nomor tiket tidak ditemukan.</div>';
 };
 
+
+<style id="publicHomePolish">
+/* ===== HALAMAN PUBLIK BPD KENDALSERUT ===== */
+:root{
+  --bpd-green:#123d2d;--bpd-green2:#1f6a4c;--bpd-soft:#eef5f1;
+  --bpd-gold:#c99a45;--bpd-text:#203029;--bpd-muted:#68756e;
+  --bpd-line:#e5ebe7;
+}
+body{background:#f7f9f8;color:var(--bpd-text)}
+.public-hero{max-width:1180px;margin:22px auto;padding:44px 34px;border-radius:24px;
+background:linear-gradient(135deg,var(--bpd-green),var(--bpd-green2));color:#fff;
+box-shadow:0 16px 42px rgba(18,61,45,.16);position:relative;overflow:hidden}
+.public-hero:after{content:"";position:absolute;width:300px;height:300px;border-radius:50%;
+right:-100px;top:-120px;background:rgba(255,255,255,.07)}
+.public-hero small{letter-spacing:.13em;font-weight:800;opacity:.82}
+.public-hero h1{font-size:clamp(30px,5vw,50px);line-height:1.08;margin:10px 0 12px;max-width:760px}
+.public-hero p{font-size:16px;line-height:1.7;max-width:720px;margin:0;opacity:.92}
+.hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+.hero-btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:11px;text-decoration:none;font-weight:800}
+.hero-btn.primary{background:#fff;color:var(--bpd-green)}
+.hero-btn.secondary{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.35);color:#fff}
+.public-section{max-width:1180px;margin:20px auto;padding:0 18px}
+.section-title{margin:0 0 5px;font-size:25px;color:var(--bpd-green)}
+.section-subtitle{margin:0 0 16px;color:var(--bpd-muted)}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.feature-card{background:#fff;border:1px solid var(--bpd-line);border-radius:18px;padding:22px;
+box-shadow:0 6px 22px rgba(0,0,0,.04)}
+.feature-icon{width:42px;height:42px;border-radius:12px;background:var(--bpd-soft);
+display:grid;place-items:center;font-size:21px;margin-bottom:12px}
+.feature-card h3{margin:0 0 7px;color:var(--bpd-green);font-size:17px}
+.feature-card p{margin:0;color:var(--bpd-muted);line-height:1.6;font-size:14px}
+.aspirasi-callout{max-width:1180px;margin:20px auto;padding:24px 26px;border-radius:20px;
+background:#fff;border:1px solid var(--bpd-line);display:flex;justify-content:space-between;
+align-items:center;gap:20px;box-shadow:0 7px 24px rgba(0,0,0,.045)}
+.aspirasi-callout h2{margin:0 0 5px;color:var(--bpd-green);font-size:22px}
+.aspirasi-callout p{margin:0;color:var(--bpd-muted)}
+.public-btn{border:0;border-radius:10px;padding:11px 16px;background:var(--bpd-green);
+color:#fff;font-weight:800;cursor:pointer;text-decoration:none;white-space:nowrap}
+.public-footer{margin-top:34px;padding:28px 18px;background:var(--bpd-green);color:#fff}
+.public-footer-inner{max-width:1180px;margin:auto;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.public-footer small{opacity:.78}
+@media(max-width:760px){
+ .public-hero{margin:10px;padding:30px 22px;border-radius:19px}
+ .public-section{padding:0 10px}.feature-grid{grid-template-columns:1fr}
+ .aspirasi-callout{margin:14px 10px;padding:20px;align-items:flex-start;flex-direction:column}
+ .public-btn{width:100%;text-align:center}
+}
+</style>
+<script>
+(function(){
+  function buildPublicHome(){
+    if(document.getElementById("publicHomePolishFooter")) return;
+    const main=document.querySelector("main") || document.body;
+    const hero=document.createElement("section");
+    hero.className="public-hero";
+    hero.innerHTML=`<small>LEMBAGA BPD DESA KENDALSERUT</small>
+      <h1>Wadah Informasi & Aspirasi Masyarakat</h1>
+      <p>Badan Permusyawaratan Desa Kendalserut hadir sebagai ruang komunikasi masyarakat untuk menyampaikan aspirasi, mengikuti informasi, dan memantau tindak lanjut secara terbuka.</p>
+      <div class="hero-actions">
+        <a class="hero-btn primary" href="#aspirasi">✉ Kirim Aspirasi</a>
+        <a class="hero-btn secondary" href="#cek">🎫 Cek Aspirasi</a>
+      </div>`;
+    main.insertBefore(hero, main.firstChild);
+
+    const section=document.createElement("section");
+    section.className="public-section";
+    section.innerHTML=`<h2 class="section-title">Layanan BPD Desa Kendalserut</h2>
+      <p class="section-subtitle">Informasi dan layanan utama untuk masyarakat.</p>
+      <div class="feature-grid">
+        <article class="feature-card"><div class="feature-icon">📢</div><h3>Sampaikan Aspirasi</h3><p>Sampaikan usulan, keluhan, atau masukan kepada BPD secara mudah melalui website.</p></article>
+        <article class="feature-card"><div class="feature-icon">🎫</div><h3>Lacak Aspirasi</h3><p>Gunakan nomor tiket untuk melihat status dan tanggapan atas aspirasi yang telah dikirim.</p></article>
+        <article class="feature-card"><div class="feature-icon">🏛️</div><h3>Informasi BPD</h3><p>Menjadi media informasi kegiatan dan pelayanan Badan Permusyawaratan Desa Kendalserut.</p></article>
+      </div>`;
+    hero.after(section);
+
+    const call=document.createElement("section");
+    call.className="aspirasi-callout";
+    call.innerHTML=`<div><h2>Mari sampaikan aspirasi Anda</h2><p>Partisipasi masyarakat membantu pembangunan Desa Kendalserut menjadi lebih baik.</p></div>
+      <a class="public-btn" href="#aspirasi">Kirim Aspirasi →</a>`;
+    section.after(call);
+
+    const footer=document.createElement("footer");
+    footer.id="publicHomePolishFooter"; footer.className="public-footer";
+    footer.innerHTML=`<div class="public-footer-inner"><div><strong>BPD Desa Kendalserut</strong><br><small>Wadah informasi dan aspirasi masyarakat</small></div><div><small>Kecamatan Pangkah • Kabupaten Tegal</small></div></div>`;
+    document.body.appendChild(footer);
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",buildPublicHome);
+  else buildPublicHome();
+})();
+</script>
+
 /* =========================
    DASHBOARD ADMIN BPD — RAPI & RESPONSIVE
 ========================= */
