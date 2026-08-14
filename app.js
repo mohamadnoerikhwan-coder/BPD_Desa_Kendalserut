@@ -200,6 +200,95 @@ color:#fff;font-weight:800;cursor:pointer;text-decoration:none;white-space:nowra
 })();
 </script>
 
+
+<style id="profilePageStyle">
+.profile-page{max-width:1180px;margin:24px auto;padding:0 18px}
+.profile-hero{background:linear-gradient(135deg,#123d2d,#1f6a4c);color:#fff;border-radius:24px;padding:36px 30px;box-shadow:0 14px 36px rgba(18,61,45,.14)}
+.profile-hero small{letter-spacing:.12em;font-weight:800;opacity:.8}.profile-hero h1{font-size:clamp(30px,5vw,46px);margin:8px 0}.profile-hero p{max-width:760px;line-height:1.7;margin:0;opacity:.92}
+.profile-grid{display:grid;grid-template-columns:1.35fr .8fr;gap:16px;margin-top:16px}
+.profile-card{background:#fff;border:1px solid #e5ebe7;border-radius:18px;padding:24px;box-shadow:0 7px 24px rgba(0,0,0,.045)}
+.profile-card h2,.profile-card h3{color:#123d2d;margin-top:0}.profile-card p,.profile-card li{line-height:1.75;color:#68756e}
+.profile-card ul,.profile-card ol{padding-left:22px}.profile-list{display:grid;gap:10px}
+.profile-list div{padding:12px 14px;border-radius:11px;background:#f7f9f8}
+.profile-list b{display:block;color:#123d2d;margin-bottom:3px}
+.profile-vision{border-left:4px solid #c99a45;padding-left:16px;font-style:italic}
+@media(max-width:800px){.profile-grid{grid-template-columns:1fr}.profile-page{padding:0 10px}.profile-hero{padding:28px 22px}}
+</style>
+<script>
+(function(){
+  function showProfile(){
+    let mount=document.getElementById("profilPageMount");
+    if(!mount){
+      mount=document.createElement("div");
+      mount.id="profilPageMount";
+      (document.querySelector("main")||document.body).appendChild(mount);
+    }
+    mount.innerHTML=`
+      <section class="profile-page">
+        <div class="profile-hero">
+          <small>PROFIL LEMBAGA</small>
+          <h1>BPD Desa Kendalserut</h1>
+          <p>Badan Permusyawaratan Desa Kendalserut merupakan lembaga yang menjadi ruang partisipasi masyarakat dalam menyampaikan aspirasi, membangun komunikasi, dan mengawal kepentingan masyarakat desa.</p>
+        </div>
+        <div class="profile-grid">
+          <div>
+            <article class="profile-card">
+              <h2>Tentang BPD</h2>
+              <p>Badan Permusyawaratan Desa (BPD) adalah lembaga yang mewadahi peran masyarakat desa dalam penyelenggaraan pemerintahan desa. BPD Desa Kendalserut berupaya menjadi jembatan komunikasi antara masyarakat dengan Pemerintah Desa serta memastikan aspirasi masyarakat dapat disampaikan dan ditindaklanjuti secara baik.</p>
+            </article>
+            <article class="profile-card">
+              <h2>Tugas dan Fungsi BPD</h2>
+              <ul>
+                <li>Menampung dan menyalurkan aspirasi masyarakat.</li>
+                <li>Membahas dan menyepakati rancangan Peraturan Desa bersama Kepala Desa.</li>
+                <li>Melakukan pengawasan terhadap kinerja Kepala Desa.</li>
+                <li>Mendorong partisipasi masyarakat dalam pembangunan desa.</li>
+              </ul>
+            </article>
+          </div>
+          <article class="profile-card">
+            <h3>Identitas BPD</h3>
+            <div class="profile-list">
+              <div><b>Nama Lembaga</b>BPD Desa Kendalserut</div>
+              <div><b>Desa</b>Kendalserut</div>
+              <div><b>Kecamatan</b>Pangkah</div>
+              <div><b>Kabupaten</b>Tegal</div>
+              <div><b>Provinsi</b>Jawa Tengah</div>
+            </div>
+          </article>
+        </div>
+        <div class="profile-grid">
+          <article class="profile-card">
+            <h2>Visi</h2>
+            <p class="profile-vision">“Mewujudkan BPD Desa Kendalserut yang aspiratif, terbuka, responsif, dan mampu menjadi mitra masyarakat serta Pemerintah Desa dalam mewujudkan Desa Kendalserut yang lebih maju dan sejahtera.”</p>
+          </article>
+          <article class="profile-card">
+            <h2>Misi</h2>
+            <ol>
+              <li>Menampung aspirasi masyarakat secara terbuka.</li>
+              <li>Mendorong transparansi dan komunikasi antara masyarakat dan Pemerintah Desa.</li>
+              <li>Mengawal aspirasi masyarakat agar mendapatkan tindak lanjut.</li>
+              <li>Meningkatkan partisipasi masyarakat dalam pembangunan desa.</li>
+            </ol>
+          </article>
+        </div>
+      </section>`;
+    mount.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  function bindProfile(){
+    document.querySelectorAll("a,button").forEach(function(el){
+      if(/profil bpd/i.test(el.textContent||"") && !el.dataset.profileBound){
+        el.dataset.profileBound="1";
+        el.addEventListener("click",function(e){e.preventDefault();showProfile();});
+      }
+    });
+    if(location.hash.toLowerCase()==="#profil") showProfile();
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",bindProfile);
+  else bindProfile();
+})();
+</script>
+
 /* =========================
    DASHBOARD ADMIN BPD — RAPI & RESPONSIVE
 ========================= */
