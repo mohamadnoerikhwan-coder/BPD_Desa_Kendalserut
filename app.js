@@ -176,12 +176,63 @@ async function admin() {
                 </select>
               </td>
               <td><textarea class="tg" data-id="${x.id}">${esc(x.tanggapan || "")}</textarea></td>
-              <td><button class="save" data-id="${x.id}">Simpan</button></td>
+              <td>
+                <button class="detail" data-id="${x.id}">Lihat Detail</button>
+                <button class="save" data-id="${x.id}">Simpan</button>
+              </td>
             </tr>
           `).join("")}
         </table>
       </div>
     </div>`;
+
+  // Modal detail aspirasi
+  const oldModal = document.getElementById("aspDetailModal");
+  if (oldModal) oldModal.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "aspDetailModal";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:9999;";
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;max-width:720px;width:100%;max-height:90vh;overflow:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <div style="display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px">
+        <h3 style="margin:0">Detail Aspirasi</h3>
+        <button id="closeAspDetail" type="button">✕ Tutup</button>
+      </div>
+      <div id="aspDetailContent"></div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const closeDetail = () => { modal.style.display = "none"; };
+  document.getElementById("closeAspDetail").onclick = closeDetail;
+  modal.onclick = (ev) => { if (ev.target === modal) closeDetail(); };
+
+  document.querySelectorAll(".detail").forEach((b) => {
+    b.onclick = () => {
+      const x = rows.find((row) => row.id === b.dataset.id);
+      if (!x) return;
+
+      const wilayah = [x.dusun, x.rt_rw].filter(Boolean).join(" / ") || "-";
+      const nama = x.anonim ? "Anonim" : (x.nama || "Masyarakat");
+      const dibuat = x.created_at ? new Date(x.created_at).toLocaleString("id-ID") : "-";
+      const diperbarui = x.updated_at ? new Date(x.updated_at).toLocaleString("id-ID") : "-";
+
+      document.getElementById("aspDetailContent").innerHTML = `
+        <div style="display:grid;gap:12px">
+          <p><b>Nomor Tiket</b><br>${esc(x.nomor_tiket)}</p>
+          <p><b>Nama</b><br>${esc(nama)}</p>
+          <p><b>Dusun / RT / RW</b><br>${esc(wilayah)}</p>
+          <p><b>WhatsApp</b><br>${esc(x.whatsapp || "-")}</p>
+          <p><b>Kategori</b><br>${esc(x.kategori)}</p>
+          <p><b>Status</b><br>${esc(x.status)}</p>
+          <p><b>Isi Aspirasi</b><br><div style="white-space:pre-wrap;background:#f7f7f7;padding:12px;border-radius:10px">${esc(x.isi_aspirasi)}</div></p>
+          <p><b>Tanggapan BPD</b><br><div style="white-space:pre-wrap;background:#f7f7f7;padding:12px;border-radius:10px">${esc(x.tanggapan || "Belum ada tanggapan.")}</div></p>
+          <p><b>Dibuat</b><br>${esc(dibuat)}</p>
+          <p><b>Diperbarui</b><br>${esc(diperbarui)}</p>
+        </div>`;
+      modal.style.display = "flex";
+    };
+  });
 
   document.querySelectorAll(".save").forEach((b) => {
     b.onclick = async () => {
