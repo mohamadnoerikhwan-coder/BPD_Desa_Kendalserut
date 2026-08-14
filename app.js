@@ -289,6 +289,86 @@ color:#fff;font-weight:800;cursor:pointer;text-decoration:none;white-space:nowra
 })();
 </script>
 
+
+<style id="structurePageStyle">
+.structure-page{max-width:1180px;margin:24px auto;padding:0 18px}
+.structure-hero{background:linear-gradient(135deg,#123d2d,#1f6a4c);color:#fff;border-radius:24px;padding:36px 30px;box-shadow:0 14px 36px rgba(18,61,45,.14)}
+.structure-hero small{letter-spacing:.12em;font-weight:800;opacity:.8}.structure-hero h1{font-size:clamp(30px,5vw,46px);margin:8px 0}.structure-hero p{max-width:760px;line-height:1.7;margin:0;opacity:.92}
+.structure-section-title{text-align:center;color:#123d2d;margin:26px 0 14px}
+.structure-top{display:flex;justify-content:center;margin:16px 0}.structure-card{background:#fff;border:1px solid #e5ebe7;border-radius:18px;padding:22px;text-align:center;box-shadow:0 7px 24px rgba(0,0,0,.045)}
+.structure-card.featured{border-top:5px solid #c99a45;min-width:270px}.structure-card h3{margin:0;color:#123d2d;font-size:19px}.structure-card p{margin:6px 0 0;color:#68756e;font-size:14px;line-height:1.5}
+.structure-line{width:2px;height:28px;background:#cfd9d3;margin:0 auto}
+.structure-second{display:grid;grid-template-columns:repeat(2,270px);justify-content:center;gap:16px}
+.structure-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
+.structure-group{background:#fff;border:1px solid #e5ebe7;border-radius:20px;padding:20px;box-shadow:0 7px 24px rgba(0,0,0,.045)}
+.structure-group h3{margin:0 0 14px;color:#123d2d;text-align:center;font-size:17px}
+.structure-members{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.structure-member{background:#f7f9f8;border-radius:14px;padding:17px;text-align:center}
+.structure-member strong{display:block;color:#123d2d}.structure-member span{display:block;color:#68756e;font-size:13px;line-height:1.45;margin-top:5px}
+.structure-note{text-align:center;color:#68756e;font-size:13px;margin:20px 0}
+@media(max-width:700px){.structure-page{padding:0 10px}.structure-hero{padding:28px 22px}.structure-second,.structure-grid{grid-template-columns:1fr}.structure-members{grid-template-columns:1fr}.structure-card.featured{min-width:0}}
+</style>
+<script>
+(function(){
+  function showStructure(){
+    let mount=document.getElementById("strukturBpdMount");
+    if(!mount){
+      mount=document.createElement("div");
+      mount.id="strukturBpdMount";
+      (document.querySelector("main")||document.body).appendChild(mount);
+    }
+    mount.innerHTML=`
+      <section class="structure-page">
+        <div class="structure-hero">
+          <small>STRUKTUR ORGANISASI</small>
+          <h1>BPD Desa Kendalserut</h1>
+          <p>Susunan anggota Badan Permusyawaratan Desa Kendalserut sebagai wadah perwakilan dan partisipasi masyarakat desa.</p>
+        </div>
+
+        <h2 class="structure-section-title">Pimpinan BPD</h2>
+        <div class="structure-top">
+          <div class="structure-card featured"><h3>Siti Muslicha, Amd</h3><p>Ketua</p></div>
+        </div>
+        <div class="structure-line"></div>
+        <div class="structure-second">
+          <div class="structure-card"><h3>Akhmad Suswanto, S.Pd.SD</h3><p>Wakil Ketua</p></div>
+          <div class="structure-card"><h3>Sunjoyo, SM</h3><p>Sekretaris</p></div>
+        </div>
+
+        <h2 class="structure-section-title">Bidang Pemerintahan &amp; Pembinaan Masyarakat</h2>
+        <div class="structure-group">
+          <div class="structure-members">
+            <div class="structure-member"><strong>Farkhatun</strong><span>Ketua Bidang Pemerintahan dan Pembinaan Masyarakat</span></div>
+            <div class="structure-member"><strong>Yasin Nurjati Kusumo</strong><span>Anggota Bidang Pemerintahan dan Pembinaan Masyarakat</span></div>
+          </div>
+        </div>
+
+        <h2 class="structure-section-title">Bidang Pembangunan &amp; Pemberdayaan Masyarakat</h2>
+        <div class="structure-group">
+          <div class="structure-members">
+            <div class="structure-member"><strong>Mohamad Nur Ikhwan</strong><span>Ketua Bidang Pembangunan dan Pemberdayaan Masyarakat</span></div>
+            <div class="structure-member"><strong>Udi Pamungkas</strong><span>Anggota Bidang Pembangunan dan Pemberdayaan Masyarakat</span></div>
+          </div>
+        </div>
+        <p class="structure-note">BPD Desa Kendalserut • Kecamatan Pangkah • Kabupaten Tegal</p>
+      </section>`;
+    mount.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+
+  function bindStructure(){
+    document.querySelectorAll("a,button").forEach(function(el){
+      if(/struktur bpd/i.test(el.textContent||"") && !el.dataset.structureBound){
+        el.dataset.structureBound="1";
+        el.addEventListener("click",function(e){e.preventDefault();showStructure();});
+      }
+    });
+    if(location.hash.toLowerCase()==="#struktur") showStructure();
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",bindStructure);
+  else bindStructure();
+})();
+</script>
+
 /* =========================
    DASHBOARD ADMIN BPD — RAPI & RESPONSIVE
 ========================= */
