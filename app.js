@@ -110,22 +110,18 @@ $("#checkForm").onsubmit = async (e) => {
 };
 
 /* =========================
-   DASHBOARD ADMIN BPD
-   - Statistik aspirasi
-   - Pencarian & filter status
-   - Daftar aspirasi terbaru
-   - Detail aspirasi
-   - Ubah status & tanggapan
+   DASHBOARD ADMIN BPD — RAPI & RESPONSIVE
 ========================= */
 async function admin() {
   const a = $("#adminDash");
   const l = $("#logoutBtn");
+  if (!a) return;
 
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     a.classList.add("hidden");
-    l.classList.add("hidden");
+    if (l) l.classList.add("hidden");
     return;
   }
 
@@ -136,14 +132,24 @@ async function admin() {
     .maybeSingle();
 
   if (profileError || !p) {
-    a.innerHTML = "<div class='panel'><h3>Akses Admin</h3><p>Akun ini belum terdaftar sebagai admin BPD.</p></div>";
+    a.innerHTML = `
+      <section class="adm-shell">
+        <div class="adm-card adm-empty">
+          <div class="adm-icon">🔐</div>
+          <h3>Akses Admin</h3>
+          <p>Akun ini belum terdaftar sebagai admin BPD.</p>
+        </div>
+      </section>`;
     a.classList.remove("hidden");
     return;
   }
 
-  l.classList.remove("hidden");
+  l?.classList.remove("hidden");
   a.classList.remove("hidden");
-  a.innerHTML = "<div class='panel'><p>Memuat dashboard...</p></div>";
+  a.innerHTML = `
+    <section class="adm-shell">
+      <div class="adm-loading">Memuat dashboard...</div>
+    </section>`;
 
   const { data: r, error } = await supabase
     .from("aspirasi")
@@ -151,190 +157,255 @@ async function admin() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    a.innerHTML = `<div class="panel"><h3>Dashboard ${esc(p.nama_lengkap)}</h3><p>Gagal memuat aspirasi: ${esc(error.message)}</p></div>`;
+    a.innerHTML = `
+      <section class="adm-shell">
+        <div class="adm-card adm-empty">
+          <div class="adm-icon">⚠️</div>
+          <h3>Gagal memuat data</h3>
+          <p>${esc(error.message)}</p>
+        </div>
+      </section>`;
     return;
   }
 
   const rows = r || [];
-  const count = (status) => rows.filter(x => x.status === status).length;
+  const count = status => rows.filter(x => x.status === status).length;
+
+  // Inject dashboard-only CSS once.
+  if (!document.getElementById("admDashboardStyle")) {
+    const style = document.createElement("style");
+    style.id = "admDashboardStyle";
+    style.textContent = `
+      .adm-shell{max-width:1180px;margin:24px auto;padding:0 18px}
+      .adm-hero{background:linear-gradient(135deg,#123d2d,#1f6a4c);color:#fff;border-radius:22px;padding:26px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;box-shadow:0 12px 32px rgba(18,61,45,.16)}
+      .adm-hero small{opacity:.8;letter-spacing:.12em;font-weight:700}
+      .adm-hero h2{margin:6px 0 4px;font-size:28px}
+      .adm-hero p{margin:0;opacity:.88}
+      .adm-hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+      .adm-btn{border:0;border-radius:11px;padding:10px 15px;font-weight:700;cursor:pointer;font-size:14px}
+      .adm-btn-light{background:#fff;color:#123d2d}
+      .adm-btn-ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3)}
+      .adm-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:16px 0}
+      .adm-stat{background:#fff;border:1px solid #e7ece9;border-radius:16px;padding:17px;box-shadow:0 5px 18px rgba(0,0,0,.04)}
+      .adm-stat-label{font-size:12px;color:#6b7771;font-weight:700}
+      .adm-stat-value{font-size:27px;font-weight:800;margin-top:5px;color:#17382b}
+      .adm-stat.total{border-top:4px solid #245c45}.adm-stat.accept{border-top:4px solid #6b8e7a}
+      .adm-stat.process{border-top:4px solid #d19a3a}.adm-stat.follow{border-top:4px solid #547ba8}
+      .adm-stat.done{border-top:4px solid #31805b}.adm-stat.reject{border-top:4px solid #b95858}
+      .adm-card{background:#fff;border:1px solid #e6ebe8;border-radius:20px;box-shadow:0 7px 24px rgba(0,0,0,.045);overflow:hidden}
+      .adm-toolbar{padding:18px;border-bottom:1px solid #edf0ee;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+      .adm-search{flex:1;min-width:240px}
+      .adm-input,.adm-select{width:100%;border:1px solid #d8e0db;border-radius:10px;padding:11px 12px;background:#fff;box-sizing:border-box}
+      .adm-toolbar .adm-input,.adm-toolbar .adm-select{width:auto}
+      .adm-table-wrap{overflow:auto}
+      .adm-table{width:100%;border-collapse:collapse;min-width:900px}
+      .adm-table th{background:#f5f8f6;color:#56645d;font-size:12px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:13px 14px;white-space:nowrap}
+      .adm-table td{padding:14px;border-top:1px solid #edf0ee;vertical-align:top;font-size:13px}
+      .adm-table tr:hover td{background:#fbfdfc}
+      .adm-ticket{font-weight:800;color:#174f39}
+      .adm-date{font-size:11px;color:#7b8781;margin-top:3px}
+      .adm-person{font-weight:700}.adm-muted{color:#7b8781}
+      .adm-status{border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800;display:inline-block;white-space:nowrap}
+      .adm-status-d{background:#edf5f0;color:#276446}.adm-status-p{background:#fff5df;color:#8a641e}
+      .adm-status-t{background:#eaf2fb;color:#3d638d}.adm-status-s{background:#e8f7ef;color:#25704a}
+      .adm-status-x{background:#faeaea;color:#9a4141}
+      .adm-actions{display:flex;gap:7px;flex-wrap:wrap}
+      .adm-action{border:0;border-radius:9px;padding:8px 10px;cursor:pointer;font-weight:700;font-size:12px}
+      .adm-detail{background:#eef5f1;color:#245c45}.adm-save{background:#245c45;color:#fff}
+      .adm-action:disabled{opacity:.55;cursor:wait}
+      .adm-note{min-width:180px;resize:vertical}
+      .adm-footer{padding:13px 18px;color:#758079;font-size:12px}
+      .adm-empty{text-align:center;padding:50px 20px}
+      .adm-icon{font-size:34px;margin-bottom:8px}
+      .adm-loading{text-align:center;padding:40px;color:#6b7771}
+      .adm-modal{position:fixed;inset:0;background:rgba(10,27,20,.58);display:flex;align-items:center;justify-content:center;padding:18px;z-index:9999}
+      .adm-modal-box{background:#fff;border-radius:22px;max-width:780px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 24px 80px rgba(0,0,0,.25)}
+      .adm-modal-head{padding:20px 22px;border-bottom:1px solid #edf0ee;display:flex;justify-content:space-between;gap:16px;align-items:center}
+      .adm-modal-body{padding:22px}
+      .adm-close{border:0;background:#f0f3f1;border-radius:9px;padding:8px 11px;cursor:pointer;font-weight:700}
+      .adm-info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px}
+      .adm-info{background:#f7f9f8;border-radius:12px;padding:12px}
+      .adm-info small{display:block;color:#7b8781;margin-bottom:4px}
+      .adm-content{background:#f7f9f8;border-radius:12px;padding:14px;white-space:pre-wrap;line-height:1.65}
+      @media(max-width:900px){.adm-stats{grid-template-columns:repeat(3,1fr)}}
+      @media(max-width:640px){.adm-shell{padding:0 10px}.adm-hero{padding:20px;align-items:flex-start;flex-direction:column}.adm-hero h2{font-size:23px}.adm-stats{grid-template-columns:repeat(2,1fr)}.adm-toolbar{padding:12px}.adm-toolbar .adm-input,.adm-toolbar .adm-select{width:100%}.adm-info-grid{grid-template-columns:1fr}.adm-modal{padding:10px}}
+    `;
+    document.head.appendChild(style);
+  }
 
   a.innerHTML = `
-    <div class="panel">
-      <div style="display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap">
+    <section class="adm-shell">
+      <div class="adm-hero">
         <div>
-          <span class="eyebrow">DASHBOARD ADMIN</span>
-          <h3 style="margin:.25rem 0">${esc(p.nama_lengkap)}</h3>
-          <p style="margin:0">${esc(p.jabatan || "Admin BPD Desa Kendalserut")}</p>
+          <small>DASHBOARD ADMIN • BPD DESA KENDALSERUT</small>
+          <h2>${esc(p.nama_lengkap)}</h2>
+          <p>${esc(p.jabatan || "Pengelola Aspirasi Masyarakat")}</p>
         </div>
-        <button id="refreshAdmin" class="btn secondary" type="button">↻ Refresh</button>
+        <div class="adm-hero-actions">
+          <button id="refreshAdmin" class="adm-btn adm-btn-ghost" type="button">↻ Refresh</button>
+        </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0">
-        <div class="panel" style="margin:0;background:#f7faf8"><small>Total Aspirasi</small><h2 style="margin:.3rem 0">${rows.length}</h2></div>
-        <div class="panel" style="margin:0;background:#f7faf8"><small>Diterima</small><h2 style="margin:.3rem 0">${count("Diterima")}</h2></div>
-        <div class="panel" style="margin:0;background:#f7faf8"><small>Diproses</small><h2 style="margin:.3rem 0">${count("Diproses")}</h2></div>
-        <div class="panel" style="margin:0;background:#f7faf8"><small>Ditindaklanjuti</small><h2 style="margin:.3rem 0">${count("Ditindaklanjuti")}</h2></div>
-        <div class="panel" style="margin:0;background:#f7faf8"><small>Selesai</small><h2 style="margin:.3rem 0">${count("Selesai")}</h2></div>
-        <div class="panel" style="margin:0;background:#f7faf8"><small>Ditolak</small><h2 style="margin:.3rem 0">${count("Ditolak")}</h2></div>
+      <div class="adm-stats">
+        <div class="adm-stat total"><div class="adm-stat-label">TOTAL ASPIRASI</div><div class="adm-stat-value">${rows.length}</div></div>
+        <div class="adm-stat accept"><div class="adm-stat-label">DITERIMA</div><div class="adm-stat-value">${count("Diterima")}</div></div>
+        <div class="adm-stat process"><div class="adm-stat-label">DIPROSES</div><div class="adm-stat-value">${count("Diproses")}</div></div>
+        <div class="adm-stat follow"><div class="adm-stat-label">DITINDAKLANJUTI</div><div class="adm-stat-value">${count("Ditindaklanjuti")}</div></div>
+        <div class="adm-stat done"><div class="adm-stat-label">SELESAI</div><div class="adm-stat-value">${count("Selesai")}</div></div>
+        <div class="adm-stat reject"><div class="adm-stat-label">DITOLAK</div><div class="adm-stat-value">${count("Ditolak")}</div></div>
       </div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
-        <input id="adminSearch" type="search" placeholder="Cari nomor tiket, nama, wilayah, kategori..." style="flex:1;min-width:230px">
-        <select id="adminStatusFilter" style="min-width:170px">
-          <option value="">Semua status</option>
-          <option>Diterima</option>
-          <option>Diproses</option>
-          <option>Ditindaklanjuti</option>
-          <option>Selesai</option>
-          <option>Ditolak</option>
-        </select>
+      <div class="adm-card">
+        <div class="adm-toolbar">
+          <div class="adm-search">
+            <input id="adminSearch" class="adm-input" type="search" placeholder="🔎  Cari tiket, nama, wilayah, kategori...">
+          </div>
+          <div style="min-width:190px">
+            <select id="adminStatusFilter" class="adm-select">
+              <option value="">Semua status</option>
+              <option>Diterima</option><option>Diproses</option>
+              <option>Ditindaklanjuti</option><option>Selesai</option><option>Ditolak</option>
+            </select>
+          </div>
+        </div>
+        <div id="adminTableWrap"></div>
+        <div id="adminFooter" class="adm-footer"></div>
       </div>
-
-      <div id="adminTableWrap" style="overflow:auto"></div>
-    </div>`;
+    </section>`;
 
   const tableWrap = $("#adminTableWrap");
+  const footer = $("#adminFooter");
+
+  const statusClass = s => ({
+    "Diterima":"adm-status-d",
+    "Diproses":"adm-status-p",
+    "Ditindaklanjuti":"adm-status-t",
+    "Selesai":"adm-status-s",
+    "Ditolak":"adm-status-x"
+  }[s] || "adm-status-d");
 
   function renderTable() {
     const q = ($("#adminSearch")?.value || "").trim().toLowerCase();
     const sf = $("#adminStatusFilter")?.value || "";
 
     const filtered = rows.filter(x => {
-      const haystack = [
-        x.nomor_tiket, x.nama, x.dusun, x.rt_rw, x.kategori, x.isi_aspirasi, x.status
-      ].filter(Boolean).join(" ").toLowerCase();
-
+      const haystack = [x.nomor_tiket,x.nama,x.dusun,x.rt_rw,x.kategori,x.isi_aspirasi,x.status]
+        .filter(Boolean).join(" ").toLowerCase();
       return (!q || haystack.includes(q)) && (!sf || x.status === sf);
     });
 
     tableWrap.innerHTML = filtered.length ? `
-      <table>
-        <thead>
-          <tr>
-            <th>Tiket</th>
-            <th>Pelapor</th>
-            <th>Wilayah</th>
-            <th>Kategori</th>
-            <th>Status</th>
-            <th>Tanggapan</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div class="adm-table-wrap">
+        <table class="adm-table">
+          <thead><tr>
+            <th>Nomor Tiket</th><th>Pelapor</th><th>Wilayah</th>
+            <th>Kategori</th><th>Status</th><th>Tanggapan</th><th>Aksi</th>
+          </tr></thead>
+          <tbody>
           ${filtered.map(x => `
             <tr>
-              <td><b>${esc(x.nomor_tiket)}</b><br><small>${x.created_at ? esc(new Date(x.created_at).toLocaleDateString("id-ID")) : ""}</small></td>
-              <td>${x.anonim ? "Anonim" : esc(x.nama || "Masyarakat")}</td>
-              <td>${esc([x.dusun, x.rt_rw].filter(Boolean).join(" / ") || "-")}</td>
-              <td>${esc(x.kategori)}</td>
               <td>
-                <select class="st" data-id="${x.id}">
-                  <option ${x.status === "Diterima" ? "selected" : ""}>Diterima</option>
-                  <option ${x.status === "Diproses" ? "selected" : ""}>Diproses</option>
-                  <option ${x.status === "Ditindaklanjuti" ? "selected" : ""}>Ditindaklanjuti</option>
-                  <option ${x.status === "Selesai" ? "selected" : ""}>Selesai</option>
-                  <option ${x.status === "Ditolak" ? "selected" : ""}>Ditolak</option>
+                <div class="adm-ticket">${esc(x.nomor_tiket)}</div>
+                <div class="adm-date">${x.created_at ? esc(new Date(x.created_at).toLocaleString("id-ID")) : ""}</div>
+              </td>
+              <td>
+                <div class="adm-person">${x.anonim ? "Anonim" : esc(x.nama || "Masyarakat")}</div>
+                <div class="adm-muted">${esc(x.whatsapp || "")}</div>
+              </td>
+              <td>${esc([x.dusun,x.rt_rw].filter(Boolean).join(" / ") || "-")}</td>
+              <td>${esc(x.kategori || "-")}</td>
+              <td>
+                <span class="adm-status ${statusClass(x.status)}">${esc(x.status || "-")}</span>
+                <select class="adm-select st" data-id="${x.id}" style="margin-top:7px">
+                  <option ${x.status==="Diterima"?"selected":""}>Diterima</option>
+                  <option ${x.status==="Diproses"?"selected":""}>Diproses</option>
+                  <option ${x.status==="Ditindaklanjuti"?"selected":""}>Ditindaklanjuti</option>
+                  <option ${x.status==="Selesai"?"selected":""}>Selesai</option>
+                  <option ${x.status==="Ditolak"?"selected":""}>Ditolak</option>
                 </select>
               </td>
-              <td><textarea class="tg" data-id="${x.id}" rows="2" placeholder="Tulis tanggapan...">${esc(x.tanggapan || "")}</textarea></td>
-              <td style="white-space:nowrap">
-                <button class="detail" data-id="${x.id}" type="button">Lihat Detail</button>
-                <button class="save" data-id="${x.id}" type="button">Simpan</button>
+              <td><textarea class="adm-input adm-note tg" data-id="${x.id}" rows="3" placeholder="Tulis tanggapan BPD...">${esc(x.tanggapan || "")}</textarea></td>
+              <td>
+                <div class="adm-actions">
+                  <button class="adm-action adm-detail detail" data-id="${x.id}" type="button">Detail</button>
+                  <button class="adm-action adm-save save" data-id="${x.id}" type="button">Simpan</button>
+                </div>
               </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-      <p style="margin-top:12px"><small>Menampilkan ${filtered.length} dari ${rows.length} aspirasi.</small></p>
-    ` : `<div class="panel" style="margin:0"><p>Tidak ada aspirasi yang sesuai dengan pencarian/filter.</p></div>`;
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>` : `
+      <div class="adm-empty">
+        <div class="adm-icon">📭</div>
+        <h3>Tidak ada aspirasi</h3>
+        <p>Belum ada data yang sesuai dengan pencarian atau filter.</p>
+      </div>`;
 
-    document.querySelectorAll(".detail").forEach((b) => {
+    footer.textContent = `Menampilkan ${filtered.length} dari ${rows.length} aspirasi`;
+
+    document.querySelectorAll(".detail").forEach(b => {
       b.onclick = () => {
         const x = rows.find(row => row.id === b.dataset.id);
-        if (!x) return;
-        showDetail(x);
+        if (x) showDetail(x);
       };
     });
 
-    document.querySelectorAll(".save").forEach((b) => {
+    document.querySelectorAll(".save").forEach(b => {
       b.onclick = async () => {
         const id = b.dataset.id;
         const s = document.querySelector(`.st[data-id="${id}"]`)?.value;
         const t = document.querySelector(`.tg[data-id="${id}"]`)?.value || "";
-        b.disabled = true;
-        b.textContent = "Menyimpan...";
+        b.disabled = true; b.textContent = "Menyimpan...";
 
-        const { error } = await supabase
-          .from("aspirasi")
-          .update({ status: s, tanggapan: t })
-          .eq("id", id);
+        const { error } = await supabase.from("aspirasi")
+          .update({ status:s, tanggapan:t }).eq("id",id);
 
-        b.disabled = false;
-        b.textContent = "Simpan";
+        b.disabled = false; b.textContent = "Simpan";
 
-        if (error) {
-          alert("Gagal menyimpan: " + error.message);
-          return;
-        }
+        if (error) { alert("Gagal menyimpan: " + error.message); return; }
 
         const item = rows.find(row => row.id === id);
-        if (item) {
-          item.status = s;
-          item.tanggapan = t;
-        }
-
-        alert("Perubahan berhasil disimpan.");
+        if (item) { item.status=s; item.tanggapan=t; }
+        alert("✓ Perubahan berhasil disimpan.");
         admin();
       };
     });
   }
 
   function showDetail(x) {
-    const oldModal = document.getElementById("aspDetailModal");
-    if (oldModal) oldModal.remove();
-
     const modal = document.createElement("div");
-    modal.id = "aspDetailModal";
-    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.48);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9999";
-
-    const wilayah = [x.dusun, x.rt_rw].filter(Boolean).join(" / ") || "-";
+    modal.className = "adm-modal";
+    const wilayah = [x.dusun,x.rt_rw].filter(Boolean).join(" / ") || "-";
     const nama = x.anonim ? "Anonim" : (x.nama || "Masyarakat");
-    const dibuat = x.created_at ? new Date(x.created_at).toLocaleString("id-ID") : "-";
-    const diperbarui = x.updated_at ? new Date(x.updated_at).toLocaleString("id-ID") : "-";
 
     modal.innerHTML = `
-      <div style="background:#fff;border-radius:18px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.25)">
-        <div style="display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px">
+      <div class="adm-modal-box">
+        <div class="adm-modal-head">
           <div>
             <small>DETAIL ASPIRASI</small>
-            <h3 style="margin:.25rem 0">${esc(x.nomor_tiket)}</h3>
+            <h3 style="margin:4px 0 0">${esc(x.nomor_tiket)}</h3>
           </div>
-          <button id="closeAspDetail" type="button">✕ Tutup</button>
+          <button class="adm-close" type="button">✕ Tutup</button>
         </div>
-
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
-          <div><b>Nama</b><br>${esc(nama)}</div>
-          <div><b>Dusun / RT / RW</b><br>${esc(wilayah)}</div>
-          <div><b>WhatsApp</b><br>${esc(x.whatsapp || "-")}</div>
-          <div><b>Kategori</b><br>${esc(x.kategori || "-")}</div>
-          <div><b>Status</b><br><span class="status">${esc(x.status || "-")}</span></div>
-          <div><b>Diajukan</b><br>${esc(dibuat)}</div>
+        <div class="adm-modal-body">
+          <div class="adm-info-grid">
+            <div class="adm-info"><small>Nama</small><b>${esc(nama)}</b></div>
+            <div class="adm-info"><small>WhatsApp</small><b>${esc(x.whatsapp || "-")}</b></div>
+            <div class="adm-info"><small>Dusun / RT / RW</small><b>${esc(wilayah)}</b></div>
+            <div class="adm-info"><small>Kategori</small><b>${esc(x.kategori || "-")}</b></div>
+            <div class="adm-info"><small>Status</small><b><span class="adm-status ${statusClass(x.status)}">${esc(x.status || "-")}</span></b></div>
+            <div class="adm-info"><small>Diajukan</small><b>${x.created_at ? esc(new Date(x.created_at).toLocaleString("id-ID")) : "-"}</b></div>
+          </div>
+          <p><b>Isi Aspirasi</b></p>
+          <div class="adm-content">${esc(x.isi_aspirasi || "-")}</div>
+          <p><b>Tanggapan BPD</b></p>
+          <div class="adm-content">${esc(x.tanggapan || "Belum ada tanggapan.")}</div>
         </div>
-
-        <hr style="margin:20px 0">
-        <p><b>Isi Aspirasi</b></p>
-        <div style="white-space:pre-wrap;background:#f6f8f7;padding:14px;border-radius:12px">${esc(x.isi_aspirasi || "-")}</div>
-
-        <p><b>Tanggapan BPD</b></p>
-        <div style="white-space:pre-wrap;background:#f6f8f7;padding:14px;border-radius:12px">${esc(x.tanggapan || "Belum ada tanggapan.")}</div>
-
-        <p><small>Terakhir diperbarui: ${esc(diperbarui)}</small></p>
       </div>`;
 
     document.body.appendChild(modal);
-    const close = () => modal.remove();
-    $("#closeAspDetail").onclick = close;
-    modal.onclick = ev => { if (ev.target === modal) close(); };
+    modal.querySelector(".adm-close").onclick = () => modal.remove();
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
   }
 
   $("#adminSearch").oninput = renderTable;
