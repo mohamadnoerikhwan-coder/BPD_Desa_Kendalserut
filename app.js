@@ -110,7 +110,12 @@ $("#checkForm").onsubmit = async (e) => {
 };
 
 /* =========================
-   DASHBOARD ADMIN
+   DASHBOARD ADMIN BPD
+   - Statistik aspirasi
+   - Pencarian & filter status
+   - Daftar aspirasi terbaru
+   - Detail aspirasi
+   - Ubah status & tanggapan
 ========================= */
 async function admin() {
   const a = $("#adminDash");
@@ -124,20 +129,21 @@ async function admin() {
     return;
   }
 
-  const { data: p } = await supabase
+  const { data: p, error: profileError } = await supabase
     .from("admin_profiles")
     .select("nama_lengkap,jabatan")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!p) {
-    a.innerHTML = "<div class='panel'>Akun bukan admin BPD.</div>";
+  if (profileError || !p) {
+    a.innerHTML = "<div class='panel'><h3>Akses Admin</h3><p>Akun ini belum terdaftar sebagai admin BPD.</p></div>";
     a.classList.remove("hidden");
     return;
   }
 
   l.classList.remove("hidden");
   a.classList.remove("hidden");
+  a.innerHTML = "<div class='panel'><p>Memuat dashboard...</p></div>";
 
   const { data: r, error } = await supabase
     .from("aspirasi")
@@ -150,22 +156,76 @@ async function admin() {
   }
 
   const rows = r || [];
+  const count = (status) => rows.filter(x => x.status === status).length;
 
   a.innerHTML = `
     <div class="panel">
-      <h3>Dashboard ${esc(p.nama_lengkap)}</h3>
-      <p>Total aspirasi: <b>${rows.length}</b></p>
-      <div style="overflow:auto">
-        <table>
+      <div style="display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap">
+        <div>
+          <span class="eyebrow">DASHBOARD ADMIN</span>
+          <h3 style="margin:.25rem 0">${esc(p.nama_lengkap)}</h3>
+          <p style="margin:0">${esc(p.jabatan || "Admin BPD Desa Kendalserut")}</p>
+        </div>
+        <button id="refreshAdmin" class="btn secondary" type="button">↻ Refresh</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0">
+        <div class="panel" style="margin:0;background:#f7faf8"><small>Total Aspirasi</small><h2 style="margin:.3rem 0">${rows.length}</h2></div>
+        <div class="panel" style="margin:0;background:#f7faf8"><small>Diterima</small><h2 style="margin:.3rem 0">${count("Diterima")}</h2></div>
+        <div class="panel" style="margin:0;background:#f7faf8"><small>Diproses</small><h2 style="margin:.3rem 0">${count("Diproses")}</h2></div>
+        <div class="panel" style="margin:0;background:#f7faf8"><small>Ditindaklanjuti</small><h2 style="margin:.3rem 0">${count("Ditindaklanjuti")}</h2></div>
+        <div class="panel" style="margin:0;background:#f7faf8"><small>Selesai</small><h2 style="margin:.3rem 0">${count("Selesai")}</h2></div>
+        <div class="panel" style="margin:0;background:#f7faf8"><small>Ditolak</small><h2 style="margin:.3rem 0">${count("Ditolak")}</h2></div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+        <input id="adminSearch" type="search" placeholder="Cari nomor tiket, nama, wilayah, kategori..." style="flex:1;min-width:230px">
+        <select id="adminStatusFilter" style="min-width:170px">
+          <option value="">Semua status</option>
+          <option>Diterima</option>
+          <option>Diproses</option>
+          <option>Ditindaklanjuti</option>
+          <option>Selesai</option>
+          <option>Ditolak</option>
+        </select>
+      </div>
+
+      <div id="adminTableWrap" style="overflow:auto"></div>
+    </div>`;
+
+  const tableWrap = $("#adminTableWrap");
+
+  function renderTable() {
+    const q = ($("#adminSearch")?.value || "").trim().toLowerCase();
+    const sf = $("#adminStatusFilter")?.value || "";
+
+    const filtered = rows.filter(x => {
+      const haystack = [
+        x.nomor_tiket, x.nama, x.dusun, x.rt_rw, x.kategori, x.isi_aspirasi, x.status
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      return (!q || haystack.includes(q)) && (!sf || x.status === sf);
+    });
+
+    tableWrap.innerHTML = filtered.length ? `
+      <table>
+        <thead>
           <tr>
-            <th>Tiket</th><th>Pelapor</th><th>Wilayah</th><th>Kategori</th>
-            <th>Status</th><th>Tanggapan</th><th>Aksi</th>
+            <th>Tiket</th>
+            <th>Pelapor</th>
+            <th>Wilayah</th>
+            <th>Kategori</th>
+            <th>Status</th>
+            <th>Tanggapan</th>
+            <th>Aksi</th>
           </tr>
-          ${rows.map(x => `
+        </thead>
+        <tbody>
+          ${filtered.map(x => `
             <tr>
-              <td>${esc(x.nomor_tiket)}</td>
+              <td><b>${esc(x.nomor_tiket)}</b><br><small>${x.created_at ? esc(new Date(x.created_at).toLocaleDateString("id-ID")) : ""}</small></td>
               <td>${x.anonim ? "Anonim" : esc(x.nama || "Masyarakat")}</td>
-              <td>${esc([x.dusun, x.rt_rw].filter(Boolean).join(" / "))}</td>
+              <td>${esc([x.dusun, x.rt_rw].filter(Boolean).join(" / ") || "-")}</td>
               <td>${esc(x.kategori)}</td>
               <td>
                 <select class="st" data-id="${x.id}">
@@ -173,82 +233,115 @@ async function admin() {
                   <option ${x.status === "Diproses" ? "selected" : ""}>Diproses</option>
                   <option ${x.status === "Ditindaklanjuti" ? "selected" : ""}>Ditindaklanjuti</option>
                   <option ${x.status === "Selesai" ? "selected" : ""}>Selesai</option>
+                  <option ${x.status === "Ditolak" ? "selected" : ""}>Ditolak</option>
                 </select>
               </td>
-              <td><textarea class="tg" data-id="${x.id}">${esc(x.tanggapan || "")}</textarea></td>
-              <td>
-                <button class="detail" data-id="${x.id}">Lihat Detail</button>
-                <button class="save" data-id="${x.id}">Simpan</button>
+              <td><textarea class="tg" data-id="${x.id}" rows="2" placeholder="Tulis tanggapan...">${esc(x.tanggapan || "")}</textarea></td>
+              <td style="white-space:nowrap">
+                <button class="detail" data-id="${x.id}" type="button">Lihat Detail</button>
+                <button class="save" data-id="${x.id}" type="button">Simpan</button>
               </td>
             </tr>
           `).join("")}
-        </table>
-      </div>
-    </div>`;
+        </tbody>
+      </table>
+      <p style="margin-top:12px"><small>Menampilkan ${filtered.length} dari ${rows.length} aspirasi.</small></p>
+    ` : `<div class="panel" style="margin:0"><p>Tidak ada aspirasi yang sesuai dengan pencarian/filter.</p></div>`;
 
-  // Modal detail aspirasi
-  const oldModal = document.getElementById("aspDetailModal");
-  if (oldModal) oldModal.remove();
+    document.querySelectorAll(".detail").forEach((b) => {
+      b.onclick = () => {
+        const x = rows.find(row => row.id === b.dataset.id);
+        if (!x) return;
+        showDetail(x);
+      };
+    });
 
-  const modal = document.createElement("div");
-  modal.id = "aspDetailModal";
-  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:9999;";
-  modal.innerHTML = `
-    <div style="background:#fff;border-radius:16px;max-width:720px;width:100%;max-height:90vh;overflow:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
-      <div style="display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px">
-        <h3 style="margin:0">Detail Aspirasi</h3>
-        <button id="closeAspDetail" type="button">✕ Tutup</button>
-      </div>
-      <div id="aspDetailContent"></div>
-    </div>`;
-  document.body.appendChild(modal);
+    document.querySelectorAll(".save").forEach((b) => {
+      b.onclick = async () => {
+        const id = b.dataset.id;
+        const s = document.querySelector(`.st[data-id="${id}"]`)?.value;
+        const t = document.querySelector(`.tg[data-id="${id}"]`)?.value || "";
+        b.disabled = true;
+        b.textContent = "Menyimpan...";
 
-  const closeDetail = () => { modal.style.display = "none"; };
-  document.getElementById("closeAspDetail").onclick = closeDetail;
-  modal.onclick = (ev) => { if (ev.target === modal) closeDetail(); };
+        const { error } = await supabase
+          .from("aspirasi")
+          .update({ status: s, tanggapan: t })
+          .eq("id", id);
 
-  document.querySelectorAll(".detail").forEach((b) => {
-    b.onclick = () => {
-      const x = rows.find((row) => row.id === b.dataset.id);
-      if (!x) return;
+        b.disabled = false;
+        b.textContent = "Simpan";
 
-      const wilayah = [x.dusun, x.rt_rw].filter(Boolean).join(" / ") || "-";
-      const nama = x.anonim ? "Anonim" : (x.nama || "Masyarakat");
-      const dibuat = x.created_at ? new Date(x.created_at).toLocaleString("id-ID") : "-";
-      const diperbarui = x.updated_at ? new Date(x.updated_at).toLocaleString("id-ID") : "-";
+        if (error) {
+          alert("Gagal menyimpan: " + error.message);
+          return;
+        }
 
-      document.getElementById("aspDetailContent").innerHTML = `
-        <div style="display:grid;gap:12px">
-          <p><b>Nomor Tiket</b><br>${esc(x.nomor_tiket)}</p>
-          <p><b>Nama</b><br>${esc(nama)}</p>
-          <p><b>Dusun / RT / RW</b><br>${esc(wilayah)}</p>
-          <p><b>WhatsApp</b><br>${esc(x.whatsapp || "-")}</p>
-          <p><b>Kategori</b><br>${esc(x.kategori)}</p>
-          <p><b>Status</b><br>${esc(x.status)}</p>
-          <p><b>Isi Aspirasi</b><br><div style="white-space:pre-wrap;background:#f7f7f7;padding:12px;border-radius:10px">${esc(x.isi_aspirasi)}</div></p>
-          <p><b>Tanggapan BPD</b><br><div style="white-space:pre-wrap;background:#f7f7f7;padding:12px;border-radius:10px">${esc(x.tanggapan || "Belum ada tanggapan.")}</div></p>
-          <p><b>Dibuat</b><br>${esc(dibuat)}</p>
-          <p><b>Diperbarui</b><br>${esc(diperbarui)}</p>
-        </div>`;
-      modal.style.display = "flex";
-    };
-  });
+        const item = rows.find(row => row.id === id);
+        if (item) {
+          item.status = s;
+          item.tanggapan = t;
+        }
 
-  document.querySelectorAll(".save").forEach((b) => {
-    b.onclick = async () => {
-      const id = b.dataset.id;
-      const s = document.querySelector(`.st[data-id="${id}"]`).value;
-      const t = document.querySelector(`.tg[data-id="${id}"]`).value;
+        alert("Perubahan berhasil disimpan.");
+        admin();
+      };
+    });
+  }
 
-      const { error } = await supabase
-        .from("aspirasi")
-        .update({ status: s, tanggapan: t })
-        .eq("id", id);
+  function showDetail(x) {
+    const oldModal = document.getElementById("aspDetailModal");
+    if (oldModal) oldModal.remove();
 
-      alert(error ? error.message : "Tersimpan");
-      if (!error) admin();
-    };
-  });
+    const modal = document.createElement("div");
+    modal.id = "aspDetailModal";
+    modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.48);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9999";
+
+    const wilayah = [x.dusun, x.rt_rw].filter(Boolean).join(" / ") || "-";
+    const nama = x.anonim ? "Anonim" : (x.nama || "Masyarakat");
+    const dibuat = x.created_at ? new Date(x.created_at).toLocaleString("id-ID") : "-";
+    const diperbarui = x.updated_at ? new Date(x.updated_at).toLocaleString("id-ID") : "-";
+
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:18px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+        <div style="display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px">
+          <div>
+            <small>DETAIL ASPIRASI</small>
+            <h3 style="margin:.25rem 0">${esc(x.nomor_tiket)}</h3>
+          </div>
+          <button id="closeAspDetail" type="button">✕ Tutup</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+          <div><b>Nama</b><br>${esc(nama)}</div>
+          <div><b>Dusun / RT / RW</b><br>${esc(wilayah)}</div>
+          <div><b>WhatsApp</b><br>${esc(x.whatsapp || "-")}</div>
+          <div><b>Kategori</b><br>${esc(x.kategori || "-")}</div>
+          <div><b>Status</b><br><span class="status">${esc(x.status || "-")}</span></div>
+          <div><b>Diajukan</b><br>${esc(dibuat)}</div>
+        </div>
+
+        <hr style="margin:20px 0">
+        <p><b>Isi Aspirasi</b></p>
+        <div style="white-space:pre-wrap;background:#f6f8f7;padding:14px;border-radius:12px">${esc(x.isi_aspirasi || "-")}</div>
+
+        <p><b>Tanggapan BPD</b></p>
+        <div style="white-space:pre-wrap;background:#f6f8f7;padding:14px;border-radius:12px">${esc(x.tanggapan || "Belum ada tanggapan.")}</div>
+
+        <p><small>Terakhir diperbarui: ${esc(diperbarui)}</small></p>
+      </div>`;
+
+    document.body.appendChild(modal);
+    const close = () => modal.remove();
+    $("#closeAspDetail").onclick = close;
+    modal.onclick = ev => { if (ev.target === modal) close(); };
+  }
+
+  $("#adminSearch").oninput = renderTable;
+  $("#adminStatusFilter").onchange = renderTable;
+  $("#refreshAdmin").onclick = admin;
+
+  renderTable();
 }
 
 $("#loginForm").onsubmit = async (e) => {
