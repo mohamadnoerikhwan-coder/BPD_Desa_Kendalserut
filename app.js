@@ -1,17 +1,13 @@
-// ============================================================
-// APP.JS - BPD DESA KENDALSERUT
-// Supabase + Aspirasi + Tiket + Cek Status + Login Admin
-// ============================================================
-
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-// ============================================================
-// 1. KONFIGURASI SUPABASE
-// ============================================================
+/* =========================================================
+   KONFIGURASI SUPABASE
+========================================================= */
 
-// GANTI DENGAN DATA PROJECT SUPABASE ANDA
-const SUPABASE_URL = "MASUKKAN_SUPABASE_URL_ANDA";
-const SUPABASE_ANON_KEY = "MASUKKAN_SUPABASE_ANON_KEY_ANDA";
+const SUPABASE_URL = "https://scyhmxfksqlwjkqhlama.supabase.co";
+
+const SUPABASE_ANON_KEY =
+  "sb_publishable_StNVl1zqzZE_bsetnfi8mA_jl9TBFyI";
 
 const supabase = createClient(
   SUPABASE_URL,
@@ -19,292 +15,421 @@ const supabase = createClient(
 );
 
 
-// ============================================================
-// 2. AMBIL ELEMEN HTML
-// ============================================================
+/* =========================================================
+   HELPER
+========================================================= */
 
-const aspForm = document.getElementById("aspForm");
-const aspMsg = document.getElementById("aspMsg");
-
-const checkForm = document.getElementById("checkForm");
-const checkResult = document.getElementById("checkResult");
-
-const loginForm = document.getElementById("loginForm");
-const loginMsg = document.getElementById("loginMsg");
-
-const adminDash = document.getElementById("adminDash");
-const logoutBtn = document.getElementById("logoutBtn");
-
-const newsList = document.getElementById("newsList");
-
-
-// ============================================================
-// 3. FUNGSI NOMOR TIKET
-// Contoh: ASP-20260816-4827
-// ============================================================
-
-function generateTicket() {
-
-  const now = new Date();
-
-  const year = now.getFullYear();
-
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-
-  const day = String(now.getDate()).padStart(2, "0");
-
-  const random = Math.floor(1000 + Math.random() * 9000);
-
-  return `ASP-${year}${month}${day}-${random}`;
+function $(id) {
+  return document.getElementById(id);
 }
 
-
-// ============================================================
-// 4. ESCAPE HTML
-// Supaya isi aspirasi tidak bisa menyisipkan HTML berbahaya
-// ============================================================
 
 function escapeHTML(value) {
-
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 
-// ============================================================
-// 5. KIRIM ASPIRASI
-// ============================================================
+function formatTanggal(value) {
+
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+
+/* =========================================================
+   GENERATOR NOMOR TIKET
+   FORMAT:
+   ASP-20260816-1234
+========================================================= */
+
+function buatNomorTiket() {
+
+  const sekarang = new Date();
+
+  const tahun = sekarang.getFullYear();
+
+  const bulan = String(
+    sekarang.getMonth() + 1
+  ).padStart(2, "0");
+
+  const tanggal = String(
+    sekarang.getDate()
+  ).padStart(2, "0");
+
+  const angka = Math.floor(
+    1000 + Math.random() * 9000
+  );
+
+  return `ASP-${tahun}${bulan}${tanggal}-${angka}`;
+}
+
+
+/* =========================================================
+   MEMBUAT NOMOR TIKET UNIK
+========================================================= */
+
+async function buatTiketUnik() {
+
+  for (let i = 0; i < 20; i++) {
+
+    const nomor = buatNomorTiket();
+
+    const { data, error } = await supabase
+      .from("aspirasi")
+      .select("id")
+      .eq("nomor_tiket", nomor)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      return nomor;
+    }
+  }
+
+  throw new Error(
+    "Tidak dapat membuat nomor tiket unik."
+  );
+}
+
+
+/* =========================================================
+   FORM ASPIRASI
+========================================================= */
+
+const aspForm = $("aspForm");
 
 if (aspForm) {
 
-  aspForm.addEventListener("submit", async function (event) {
+  aspForm.addEventListener(
+    "submit",
+    async function (event) {
 
-    event.preventDefault();
+      event.preventDefault();
 
-    if (aspMsg) {
-      aspMsg.innerHTML = "⏳ Sedang mengirim aspirasi...";
-    }
+      const message = $("aspMsg");
 
-    const namaInput = document.getElementById("nama");
-    const wilayahInput = document.getElementById("wilayah");
-    const whatsappInput = document.getElementById("whatsapp");
-    const kategoriInput = document.getElementById("kategori");
-    const isiInput = document.getElementById("isi");
-    const anonimInput = aspForm.querySelector('input[name="anonim"]');
+      if (message) {
+        message.innerHTML =
+          "⏳ Sedang mengirim aspirasi...";
+      }
 
-    const nama = namaInput?.value.trim() || "";
-    const wilayah = wilayahInput?.value.trim() || "";
-    const whatsapp = whatsappInput?.value.trim() || "";
-    const kategori = kategoriInput?.value || "";
-    const isi = isiInput?.value.trim() || "";
-    const anonim = anonimInput?.checked || false;
+      const formData =
+        new FormData(aspForm);
 
+      const nama =
+        String(
+          formData.get("nama") || ""
+        ).trim();
 
-    // Validasi
-    if (!kategori) {
+      const wilayah =
+        String(
+          formData.get("wilayah") || ""
+        ).trim();
 
-      aspMsg.innerHTML =
-        "⚠️ Silakan pilih kategori aspirasi.";
+      const whatsapp =
+        String(
+          formData.get("whatsapp") || ""
+        ).trim();
 
-      return;
-    }
+      const kategori =
+        String(
+          formData.get("kategori") || ""
+        ).trim();
 
-    if (!isi) {
+      const isi =
+        String(
+          formData.get("isi") || ""
+        ).trim();
 
-      aspMsg.innerHTML =
-        "⚠️ Isi aspirasi belum diisi.";
-
-      return;
-    }
-
-
-    // Pisahkan Dusun / Wilayah menjadi dusun dan RT/RW
-    let dusun = wilayah;
-    let rt_rw = "";
-
-    const wilayahParts = wilayah.split(",");
-
-    if (wilayahParts.length > 1) {
-
-      dusun = wilayahParts[0].trim();
-
-      rt_rw = wilayahParts
-        .slice(1)
-        .join(",")
-        .trim();
-
-    }
+      const anonim =
+        formData.get("anonim") !== null;
 
 
-    // Buat nomor tiket
-    const nomor_tiket = generateTicket();
+      /* ---------------------------------------------
+         VALIDASI
+      --------------------------------------------- */
 
+      if (!kategori) {
 
-    try {
-
-      const { data, error } = await supabase
-        .from("aspirasi")
-        .insert([
-          {
-            nomor_tiket: nomor_tiket,
-            nama: anonim ? "Anonim" : nama,
-            dusun: dusun,
-            rt_rw: rt_rw,
-            whatsapp: anonim ? "" : whatsapp,
-            kategori: kategori,
-            isi_aspirasi: isi,
-            anonim: anonim,
-            status: "Menunggu",
-            tanggapan: "",
-          }
-        ])
-        .select()
-        .single();
-
-
-      if (error) {
-
-        console.error("Supabase insert error:", error);
-
-        aspMsg.innerHTML =
-          "❌ Aspirasi gagal dikirim.<br><br>" +
-          "<small>" +
-          escapeHTML(error.message) +
-          "</small>";
+        message.innerHTML =
+          "⚠️ Silakan pilih kategori aspirasi.";
 
         return;
       }
 
 
-      // ======================================================
-      // BERHASIL
-      // ======================================================
+      if (!isi) {
 
-      aspMsg.innerHTML = `
-        <div class="result ticket-result">
+        message.innerHTML =
+          "⚠️ Isi aspirasi wajib diisi.";
 
-          <h3>✅ Aspirasi Berhasil Dikirim</h3>
+        return;
+      }
 
-          <p>
-            Terima kasih. Aspirasi Anda telah diterima
-            oleh BPD Desa Kendalserut.
-          </p>
 
-          <p>
-            <strong>Nomor Tiket Anda:</strong>
-          </p>
+      if (!anonim && !nama) {
+
+        message.innerHTML =
+          "⚠️ Silakan isi nama atau centang \"Kirim sebagai anonim\".";
+
+        return;
+      }
+
+
+      try {
+
+        /* -------------------------------------------
+           BUAT NOMOR TIKET
+        ------------------------------------------- */
+
+        const nomorTiket =
+          await buatTiketUnik();
+
+
+        /* -------------------------------------------
+           DATA YANG DISIMPAN
+           
+           Sesuai tabel:
+           
+           id
+           nomor_tiket
+           nama
+           dusun
+           rt_rw
+           whatsapp
+           kategori
+           isi_aspirasi
+           anonim
+           status
+           tanggapan
+           created_at
+           updated_at
+        ------------------------------------------- */
+
+        const dataAspirasi = {
+
+          nomor_tiket: nomorTiket,
+
+          nama: anonim
+            ? "Anonim"
+            : nama,
+
+          dusun: wilayah,
+
+          rt_rw: wilayah,
+
+          whatsapp: anonim
+            ? ""
+            : whatsapp,
+
+          kategori: kategori,
+
+          isi_aspirasi: isi,
+
+          anonim: anonim,
+
+          status: "Menunggu",
+
+          tanggapan: "",
+
+          created_at:
+            new Date().toISOString(),
+
+          updated_at:
+            new Date().toISOString()
+        };
+
+
+        /* -------------------------------------------
+           SIMPAN KE SUPABASE
+        ------------------------------------------- */
+
+        const {
+          data,
+          error
+        } = await supabase
+          .from("aspirasi")
+          .insert(dataAspirasi)
+          .select()
+          .single();
+
+
+        if (error) {
+          throw error;
+        }
+
+
+        /* -------------------------------------------
+           BERHASIL
+        ------------------------------------------- */
+
+        message.innerHTML = `
 
           <div
+            class="result ticket-result"
             style="
-              font-size:22px;
-              font-weight:800;
-              letter-spacing:1px;
-              padding:14px;
-              margin:10px 0;
-              background:#ffffff;
-              border-radius:10px;
-              text-align:center;
-              border:1px dashed #245c45;
+              background:#eef8f1;
+              border-left:5px solid #245c45;
+              padding:20px;
+              border-radius:12px;
             "
           >
-            ${escapeHTML(data.nomor_tiket)}
+
+            <h3>
+              ✅ Aspirasi Berhasil Dikirim
+            </h3>
+
+            <p>
+              Terima kasih telah menyampaikan
+              aspirasi kepada BPD Desa Kendalserut.
+            </p>
+
+            <p>
+              Nomor tiket aspirasi Anda:
+            </p>
+
+            <div
+              style="
+                font-size:26px;
+                font-weight:800;
+                letter-spacing:1px;
+                padding:12px 0;
+                color:#245c45;
+              "
+            >
+              ${escapeHTML(
+                data.nomor_tiket
+              )}
+            </div>
+
+            <p>
+              ⚠️
+              <strong>
+                Simpan nomor tiket ini.
+              </strong>
+              Nomor ini digunakan untuk mengecek
+              status aspirasi Anda.
+            </p>
+
           </div>
 
-          <p>
-            ⚠️ Simpan nomor tiket tersebut untuk
-            mengecek status aspirasi Anda.
-          </p>
-
-        </div>
-      `;
+        `;
 
 
-      // Kosongkan form
-      aspForm.reset();
+        /* -------------------------------------------
+           RESET FORM
+        ------------------------------------------- */
+
+        aspForm.reset();
 
 
-      // Simpan tiket sementara di browser
-      localStorage.setItem(
-        "lastAspirasiTicket",
-        data.nomor_tiket
-      );
+        /* -------------------------------------------
+           ISI OTOMATIS FORM CEK
+        ------------------------------------------- */
+
+        const ticketInput =
+          $("ticket");
+
+        if (ticketInput) {
+          ticketInput.value =
+            data.nomor_tiket;
+        }
 
 
-    } catch (error) {
+      } catch (error) {
 
-      console.error(error);
+        console.error(
+          "ERROR KIRIM ASPIRASI:",
+          error
+        );
 
-      aspMsg.innerHTML =
-        "❌ Terjadi kesalahan saat mengirim aspirasi.";
+        message.innerHTML = `
+
+          <div
+            class="result"
+            style="
+              background:#fff1f1;
+              color:#9a3030;
+              border-left:5px solid #c74b4b;
+            "
+          >
+
+            ❌
+            <strong>
+              Aspirasi gagal dikirim.
+            </strong>
+
+            <p>
+              Silakan coba beberapa saat lagi.
+            </p>
+
+          </div>
+
+        `;
+      }
 
     }
-
-  });
+  );
 
 }
 
 
-// ============================================================
-// 6. CEK STATUS ASPIRASI
-// ============================================================
+/* =========================================================
+   CEK STATUS ASPIRASI
+========================================================= */
+
+const checkForm =
+  $("checkForm");
+
 
 if (checkForm) {
 
-  checkForm.addEventListener("submit", async function (event) {
+  checkForm.addEventListener(
+    "submit",
+    async function (event) {
 
-    event.preventDefault();
+      event.preventDefault();
 
-    const ticketInput =
-      document.getElementById("ticket");
+      const result =
+        $("checkResult");
 
-    const ticket =
-      ticketInput?.value.trim().toUpperCase() || "";
+      const formData =
+        new FormData(checkForm);
 
-
-    if (!ticket) {
-
-      checkResult.innerHTML = `
-        <div class="result">
-          ⚠️ Silakan masukkan nomor tiket.
-        </div>
-      `;
-
-      return;
-    }
+      const nomorTiket =
+        String(
+          formData.get("ticket") || ""
+        ).trim();
 
 
-    checkResult.innerHTML =
-      `<div class="result">⏳ Mencari data aspirasi...</div>`;
+      if (!nomorTiket) {
 
-
-    try {
-
-      const { data, error } = await supabase
-        .from("aspirasi")
-        .select(
-          "nomor_tiket,kategori,isi_aspirasi,status,tanggapan,created_at,updated_at"
-        )
-        .eq("nomor_tiket", ticket)
-        .maybeSingle();
-
-
-      if (error) {
-
-        console.error("Check ticket error:", error);
-
-        checkResult.innerHTML = `
+        result.innerHTML = `
           <div class="result">
-            ❌ Terjadi kesalahan saat mencari tiket.
-            <br><br>
-            <small>${escapeHTML(error.message)}</small>
+            ⚠️ Silakan masukkan nomor tiket.
           </div>
         `;
 
@@ -312,829 +437,1299 @@ if (checkForm) {
       }
 
 
-      if (!data) {
+      result.innerHTML = `
+        <div class="result">
+          ⏳ Mencari data aspirasi...
+        </div>
+      `;
 
-        checkResult.innerHTML = `
-          <div class="result">
-            ❌ Nomor tiket tidak ditemukan.
-            <br><br>
-            Pastikan nomor tiket yang dimasukkan sudah benar.
+
+      try {
+
+        const {
+          data,
+          error
+        } = await supabase
+          .from("aspirasi")
+          .select(`
+            nomor_tiket,
+            nama,
+            dusun,
+            rt_rw,
+            kategori,
+            isi_aspirasi,
+            anonim,
+            status,
+            tanggapan,
+            created_at
+          `)
+          .eq(
+            "nomor_tiket",
+            nomorTiket
+          )
+          .maybeSingle();
+
+
+        if (error) {
+          throw error;
+        }
+
+
+        if (!data) {
+
+          result.innerHTML = `
+
+            <div
+              class="result"
+              style="
+                background:#fff5f5;
+                color:#963939;
+              "
+            >
+
+              ❌
+              <strong>
+                Nomor tiket tidak ditemukan.
+              </strong>
+
+              <p>
+                Periksa kembali nomor tiket
+                yang Anda masukkan.
+              </p>
+
+            </div>
+
+          `;
+
+          return;
+        }
+
+
+        result.innerHTML = `
+
+          <div
+            class="result ticket-result"
+          >
+
+            <h3>
+              🎫 Detail Aspirasi
+            </h3>
+
+            <p>
+              <strong>
+                Nomor Tiket
+              </strong>
+              <br>
+              ${escapeHTML(
+                data.nomor_tiket
+              )}
+            </p>
+
+            <p>
+              <strong>
+                Nama
+              </strong>
+              <br>
+              ${escapeHTML(
+                data.anonim
+                  ? "Anonim"
+                  : data.nama
+              )}
+            </p>
+
+            <p>
+              <strong>
+                Wilayah
+              </strong>
+              <br>
+              ${escapeHTML(
+                data.dusun || "-"
+              )}
+            </p>
+
+            <p>
+              <strong>
+                Kategori
+              </strong>
+              <br>
+              ${escapeHTML(
+                data.kategori
+              )}
+            </p>
+
+            <p>
+              <strong>
+                Tanggal Pengajuan
+              </strong>
+              <br>
+              ${escapeHTML(
+                formatTanggal(
+                  data.created_at
+                )
+              )}
+            </p>
+
+            <p>
+              <strong>
+                Status
+              </strong>
+              <br>
+
+              <span class="status">
+                ${escapeHTML(
+                  data.status ||
+                  "Menunggu"
+                )}
+              </span>
+
+            </p>
+
+            <p>
+              <strong>
+                Isi Aspirasi
+              </strong>
+              <br>
+              ${escapeHTML(
+                data.isi_aspirasi
+              )}
+            </p>
+
+            <p>
+              <strong>
+                Tanggapan BPD
+              </strong>
+              <br>
+
+              ${
+                data.tanggapan
+                  ? escapeHTML(
+                      data.tanggapan
+                    )
+                  : "Belum ada tanggapan dari BPD."
+              }
+
+            </p>
+
           </div>
+
         `;
 
-        return;
+
+      } catch (error) {
+
+        console.error(
+          "ERROR CEK ASPIRASI:",
+          error
+        );
+
+        result.innerHTML = `
+
+          <div class="result">
+
+            ❌
+            Terjadi kesalahan saat
+            mengambil data aspirasi.
+
+          </div>
+
+        `;
       }
 
-
-      // ======================================================
-      // TAMPILKAN HASIL
-      // ======================================================
-
-      const createdDate = data.created_at
-        ? new Date(data.created_at).toLocaleString("id-ID")
-        : "-";
-
-
-      const tanggapan =
-        data.tanggapan &&
-        data.tanggapan.trim() !== ""
-          ? escapeHTML(data.tanggapan)
-          : "Belum ada tanggapan dari BPD.";
-
-
-      checkResult.innerHTML = `
-        <div class="result ticket-result">
-
-          <h3>📋 Data Aspirasi</h3>
-
-          <p>
-            <strong>Nomor Tiket:</strong><br>
-            ${escapeHTML(data.nomor_tiket)}
-          </p>
-
-          <p>
-            <strong>Kategori:</strong><br>
-            ${escapeHTML(data.kategori)}
-          </p>
-
-          <p>
-            <strong>Isi Aspirasi:</strong><br>
-            ${escapeHTML(data.isi_aspirasi)}
-          </p>
-
-          <p>
-            <strong>Status:</strong><br>
-            <span class="status">
-              ${escapeHTML(data.status || "Menunggu")}
-            </span>
-          </p>
-
-          <p>
-            <strong>Tanggapan BPD:</strong><br>
-            ${tanggapan}
-          </p>
-
-          <p>
-            <strong>Tanggal Pengiriman:</strong><br>
-            ${createdDate}
-          </p>
-
-        </div>
-      `;
-
-
-    } catch (error) {
-
-      console.error(error);
-
-      checkResult.innerHTML = `
-        <div class="result">
-          ❌ Terjadi kesalahan sistem.
-        </div>
-      `;
-
     }
-
-  });
+  );
 
 }
 
 
-// ============================================================
-// 7. LOGIN ADMIN
-// ============================================================
+/* =========================================================
+   LOGIN ADMIN
+========================================================= */
+
+const loginForm =
+  $("loginForm");
+
 
 if (loginForm) {
 
-  loginForm.addEventListener("submit", async function (event) {
+  loginForm.addEventListener(
+    "submit",
+    async function (event) {
 
-    event.preventDefault();
+      event.preventDefault();
 
-    const email =
-      document.getElementById("email")?.value.trim();
+      const loginMsg =
+        $("loginMsg");
 
-    const password =
-      document.getElementById("password")?.value;
+      const email =
+        $("email")?.value.trim() || "";
 
-
-    if (loginMsg) {
-      loginMsg.innerHTML = "⏳ Memeriksa akun...";
-    }
-
-
-    try {
-
-      const { data, error } =
-        await supabase.auth.signInWithPassword({
-          email: email,
-          password: password
-        });
+      const password =
+        $("password")?.value || "";
 
 
-      if (error) {
+      loginMsg.textContent =
+        "⏳ Memeriksa akun...";
 
-        console.error("Login error:", error);
 
-        loginMsg.innerHTML =
+      try {
+
+        const {
+          data,
+          error
+        } = await supabase.auth
+          .signInWithPassword({
+            email,
+            password
+          });
+
+
+        if (error) {
+          throw error;
+        }
+
+
+        loginMsg.textContent =
+          "✅ Login berhasil.";
+
+
+        await tampilkanDashboard(
+          data.user
+        );
+
+
+      } catch (error) {
+
+        console.error(
+          "ERROR LOGIN:",
+          error
+        );
+
+        loginMsg.textContent =
           "❌ Email atau password salah.";
 
-        return;
       }
 
-
-      loginMsg.innerHTML =
-        "✅ Login berhasil.";
-
-
-      await showAdminDashboard();
-
-
-      // Scroll ke dashboard
-      setTimeout(() => {
-
-        adminDash?.scrollIntoView({
-          behavior: "smooth"
-        });
-
-      }, 300);
-
-
-    } catch (error) {
-
-      console.error(error);
-
-      loginMsg.innerHTML =
-        "❌ Terjadi kesalahan saat login.";
-
     }
-
-  });
+  );
 
 }
 
 
-// ============================================================
-// 8. DASHBOARD ADMIN
-// ============================================================
+/* =========================================================
+   DASHBOARD ADMIN
+========================================================= */
 
-async function showAdminDashboard() {
+async function tampilkanDashboard(user) {
 
-  if (!adminDash) {
+  const dashboard =
+    $("adminDash");
+
+  if (!dashboard) {
     return;
   }
 
 
-  adminDash.classList.remove("hidden");
+  dashboard.classList.remove(
+    "hidden"
+  );
 
 
-  adminDash.innerHTML = `
-    <div
+  const logoutBtn =
+    $("logoutBtn");
+
+  if (logoutBtn) {
+    logoutBtn.classList.remove(
+      "hidden"
+    );
+  }
+
+
+  dashboard.innerHTML = `
+
+    <section
       class="section"
       style="
-        background:#0b5d3b;
+        background:#245c45;
         color:white;
       "
     >
 
       <div class="container">
 
-        <div class="admin-topbar">
+        <div
+          class="admin-topbar"
+        >
 
           <div>
 
-            <h2 style="margin:0;color:white;">
-              Dashboard Admin BPD
-            </h2>
-
-            <div
-              id="adminUser"
-              class="admin-user"
-              style="margin-top:5px;"
+            <span
+              style="
+                font-size:13px;
+                opacity:.8;
+              "
             >
-              Memuat...
-            </div>
+              DASHBOARD ADMIN
+            </span>
+
+            <h2
+              style="
+                margin:5px 0;
+                color:white;
+              "
+            >
+              BPD Desa Kendalserut
+            </h2>
 
           </div>
 
-          <button
-            id="dashboardLogout"
-            class="logout-button"
-            type="button"
+
+          <div
+            class="admin-user"
           >
-            🚪 Logout
-          </button>
+
+            👤
+            ${escapeHTML(
+              user?.email ||
+              "Administrator"
+            )}
+
+          </div>
 
         </div>
 
-      </div>
-
-    </div>
-
-
-    <section
-      class="section"
-      style="background:#f4f7f5;"
-    >
-
-      <div class="container">
-
-        <div id="adminStats"></div>
 
         <div
-          id="adminAspirasi"
-          style="margin-top:25px;"
+          id="adminStats"
+          style="
+            display:grid;
+            grid-template-columns:
+              repeat(
+                auto-fit,
+                minmax(170px,1fr)
+              );
+            gap:15px;
+          "
         >
-          ⏳ Memuat data aspirasi...
         </div>
 
       </div>
 
     </section>
+
+
+    <section
+      class="section section-soft"
+    >
+
+      <div class="container">
+
+        <div
+          style="
+            display:flex;
+            justify-content:
+              space-between;
+            align-items:center;
+            gap:15px;
+            flex-wrap:wrap;
+          "
+        >
+
+          <div>
+
+            <span
+              class="section-label"
+            >
+              DATA MASYARAKAT
+            </span>
+
+            <h2>
+              Aspirasi Masyarakat
+            </h2>
+
+          </div>
+
+
+          <button
+            id="refreshAdminBtn"
+            class="btn btn-primary"
+            type="button"
+          >
+            🔄 Refresh Data
+          </button>
+
+        </div>
+
+
+        <div
+          id="adminAspirasiList"
+          style="margin-top:25px"
+        >
+          ⏳ Memuat data...
+        </div>
+
+      </div>
+
+    </section>
+
   `;
 
 
-  const {
-    data: {
-      user
-    }
-  } = await supabase.auth.getUser();
-
-
-  const adminUser =
-    document.getElementById("adminUser");
-
-
-  if (adminUser) {
-
-    adminUser.textContent =
-      user?.email || "Administrator";
-
-  }
-
-
-  const dashboardLogout =
-    document.getElementById("dashboardLogout");
-
-
-  if (dashboardLogout) {
-
-    dashboardLogout.addEventListener(
+  $("refreshAdminBtn")
+    ?.addEventListener(
       "click",
-      logoutAdmin
+      muatDataAdmin
     );
 
-  }
 
-
-  if (logoutBtn) {
-    logoutBtn.classList.remove("hidden");
-  }
-
-
-  await loadAdminAspirasi();
-
+  await muatDataAdmin();
 }
 
 
-// ============================================================
-// 9. LOAD ASPIRASI ADMIN
-// ============================================================
+/* =========================================================
+   STATISTIK ADMIN
+========================================================= */
 
-async function loadAdminAspirasi() {
+function buatKartuStatistik(
+  judul,
+  angka
+) {
 
-  const container =
-    document.getElementById("adminAspirasi");
+  return `
+
+    <div
+      style="
+        background:white;
+        color:#245c45;
+        padding:20px;
+        border-radius:15px;
+      "
+    >
+
+      <small>
+        ${escapeHTML(judul)}
+      </small>
+
+      <div
+        style="
+          font-size:30px;
+          font-weight:800;
+          margin-top:5px;
+        "
+      >
+        ${angka}
+      </div>
+
+    </div>
+
+  `;
+}
+
+
+/* =========================================================
+   LOAD DATA ADMIN
+========================================================= */
+
+async function muatDataAdmin() {
+
+  const list =
+    $("adminAspirasiList");
 
   const stats =
-    document.getElementById("adminStats");
+    $("adminStats");
 
 
-  if (!container) {
+  if (!list) {
+    return;
+  }
+
+
+  list.innerHTML =
+    "⏳ Memuat data aspirasi...";
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await supabase
+      .from("aspirasi")
+      .select("*")
+      .order(
+        "created_at",
+        {
+          ascending:false
+        }
+      );
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    const semua =
+      data || [];
+
+
+    const menunggu =
+      semua.filter(
+        x =>
+          String(
+            x.status || ""
+          ).toLowerCase() ===
+          "menunggu"
+      ).length;
+
+
+    const diproses =
+      semua.filter(
+        x =>
+          String(
+            x.status || ""
+          ).toLowerCase() ===
+          "diproses"
+      ).length;
+
+
+    const selesai =
+      semua.filter(
+        x =>
+          String(
+            x.status || ""
+          ).toLowerCase() ===
+          "selesai"
+      ).length;
+
+
+    if (stats) {
+
+      stats.innerHTML =
+
+        buatKartuStatistik(
+          "Total Aspirasi",
+          semua.length
+        ) +
+
+        buatKartuStatistik(
+          "Menunggu",
+          menunggu
+        ) +
+
+        buatKartuStatistik(
+          "Diproses",
+          diproses
+        ) +
+
+        buatKartuStatistik(
+          "Selesai",
+          selesai
+        );
+    }
+
+
+    if (!semua.length) {
+
+      list.innerHTML = `
+
+        <div
+          class="service-form"
+        >
+
+          <h3>
+            Belum Ada Aspirasi
+          </h3>
+
+          <p>
+            Belum ada aspirasi
+            masyarakat yang masuk.
+          </p>
+
+        </div>
+
+      `;
+
+      return;
+    }
+
+
+    list.innerHTML =
+      semua.map(
+        buatTampilanAspirasiAdmin
+      ).join("");
+
+
+    /* ---------------------------------------------
+       EVENT TOMBOL SIMPAN
+    --------------------------------------------- */
+
+    document
+      .querySelectorAll(
+        ".save-aspirasi"
+      )
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            "click",
+            function () {
+
+              simpanPerubahan(
+                this.dataset.id
+              );
+
+            }
+          );
+
+        }
+      );
+
+
+    /* ---------------------------------------------
+       EVENT TOMBOL HAPUS
+    --------------------------------------------- */
+
+    document
+      .querySelectorAll(
+        ".delete-aspirasi"
+      )
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            "click",
+            function () {
+
+              hapusAspirasi(
+                this.dataset.id
+              );
+
+            }
+          );
+
+        }
+      );
+
+
+  } catch (error) {
+
+    console.error(
+      "ERROR LOAD ADMIN:",
+      error
+    );
+
+
+    list.innerHTML = `
+
+      <div
+        class="service-form"
+        style="
+          color:#9a3030;
+        "
+      >
+
+        ❌
+        <strong>
+          Data aspirasi gagal dimuat.
+        </strong>
+
+        <p>
+          Pastikan pengaturan Supabase
+          dan Row Level Security sudah benar.
+        </p>
+
+      </div>
+
+    `;
+  }
+}
+
+
+/* =========================================================
+   TAMPILKAN ASPIRASI ADMIN
+========================================================= */
+
+function buatTampilanAspirasiAdmin(
+  item
+) {
+
+  const status =
+    item.status ||
+    "Menunggu";
+
+
+  const pilihanStatus =
+    [
+      "Menunggu",
+      "Diproses",
+      "Selesai",
+      "Ditolak"
+    ];
+
+
+  const options =
+    pilihanStatus
+      .map(
+        pilihan => `
+
+          <option
+            value="${escapeHTML(
+              pilihan
+            )}"
+            ${
+              status === pilihan
+                ? "selected"
+                : ""
+            }
+          >
+            ${escapeHTML(
+              pilihan
+            )}
+          </option>
+
+        `
+      )
+      .join("");
+
+
+  return `
+
+    <article
+      style="
+        background:white;
+        border:1px solid #dfe7e2;
+        border-radius:16px;
+        padding:20px;
+        margin-bottom:18px;
+        box-shadow:
+          0 5px 18px
+          rgba(0,0,0,.04);
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:
+            space-between;
+          gap:15px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <div>
+
+          <strong>
+            🎫
+            ${escapeHTML(
+              item.nomor_tiket
+            )}
+          </strong>
+
+          <div
+            style="
+              color:#68756d;
+              font-size:13px;
+              margin-top:6px;
+            "
+          >
+            ${escapeHTML(
+              formatTanggal(
+                item.created_at
+              )
+            )}
+          </div>
+
+        </div>
+
+
+        <span
+          class="status"
+        >
+          ${escapeHTML(status)}
+        </span>
+
+      </div>
+
+
+      <hr
+        style="
+          border:0;
+          border-top:
+            1px solid #e5ebe7;
+          margin:16px 0;
+        "
+      >
+
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:
+            repeat(
+              auto-fit,
+              minmax(190px,1fr)
+            );
+          gap:14px;
+        "
+      >
+
+        <div>
+
+          <strong>
+            Nama
+          </strong>
+
+          <br>
+
+          ${escapeHTML(
+            item.anonim
+              ? "Anonim"
+              : (
+                  item.nama ||
+                  "-"
+                )
+          )}
+
+        </div>
+
+
+        <div>
+
+          <strong>
+            Dusun
+          </strong>
+
+          <br>
+
+          ${escapeHTML(
+            item.dusun || "-"
+          )}
+
+        </div>
+
+
+        <div>
+
+          <strong>
+            RT / RW
+          </strong>
+
+          <br>
+
+          ${escapeHTML(
+            item.rt_rw || "-"
+          )}
+
+        </div>
+
+
+        <div>
+
+          <strong>
+            WhatsApp
+          </strong>
+
+          <br>
+
+          ${escapeHTML(
+            item.whatsapp || "-"
+          )}
+
+        </div>
+
+
+        <div>
+
+          <strong>
+            Kategori
+          </strong>
+
+          <br>
+
+          ${escapeHTML(
+            item.kategori || "-"
+          )}
+
+        </div>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:18px;
+          background:#f5f8f6;
+          padding:15px;
+          border-radius:12px;
+        "
+      >
+
+        <strong>
+          Isi Aspirasi
+        </strong>
+
+        <p>
+          ${escapeHTML(
+            item.isi_aspirasi ||
+            "-"
+          )}
+        </p>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:15px;
+        "
+      >
+
+        <label>
+
+          <strong>
+            Status
+          </strong>
+
+        </label>
+
+        <br>
+
+        <select
+          class="admin-status"
+          data-id="${escapeHTML(
+            item.id
+          )}"
+          style="
+            margin-top:7px;
+            width:100%;
+            max-width:350px;
+            padding:11px;
+            border:
+              1px solid #d7e0da;
+            border-radius:10px;
+          "
+        >
+
+          ${options}
+
+        </select>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:15px;
+        "
+      >
+
+        <label>
+
+          <strong>
+            Tanggapan BPD
+          </strong>
+
+        </label>
+
+        <br>
+
+        <textarea
+          class="admin-tanggapan"
+          data-id="${escapeHTML(
+            item.id
+          )}"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            min-height:100px;
+            padding:12px;
+            border:
+              1px solid #d7e0da;
+            border-radius:10px;
+            margin-top:7px;
+          "
+        >${escapeHTML(
+          item.tanggapan || ""
+        )}</textarea>
+
+      </div>
+
+
+      <div
+        style="
+          margin-top:15px;
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <button
+          class="btn btn-primary save-aspirasi"
+          data-id="${escapeHTML(
+            item.id
+          )}"
+          type="button"
+        >
+          💾 Simpan Perubahan
+        </button>
+
+
+        <button
+          class="btn btn-light delete-aspirasi"
+          data-id="${escapeHTML(
+            item.id
+          )}"
+          type="button"
+        >
+          🗑 Hapus
+        </button>
+
+      </div>
+
+    </article>
+
+  `;
+}
+
+
+/* =========================================================
+   SIMPAN PERUBAHAN ASPIRASI
+========================================================= */
+
+async function simpanPerubahan(id) {
+
+  const statusElement =
+    document.querySelector(
+      `.admin-status[data-id="${CSS.escape(
+        String(id)
+      )}"]`
+    );
+
+
+  const tanggapanElement =
+    document.querySelector(
+      `.admin-tanggapan[data-id="${CSS.escape(
+        String(id)
+      )}"]`
+    );
+
+
+  const status =
+    statusElement?.value ||
+    "Menunggu";
+
+
+  const tanggapan =
+    tanggapanElement?.value.trim() ||
+    "";
+
+
+  try {
+
+    const {
+      error
+    } = await supabase
+      .from("aspirasi")
+      .update({
+
+        status: status,
+
+        tanggapan:
+          tanggapan,
+
+        updated_at:
+          new Date().toISOString()
+
+      })
+      .eq(
+        "id",
+        id
+      );
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    alert(
+      "✅ Perubahan berhasil disimpan."
+    );
+
+
+    await muatDataAdmin();
+
+
+  } catch (error) {
+
+    console.error(
+      "ERROR UPDATE:",
+      error
+    );
+
+
+    alert(
+      "❌ Gagal menyimpan perubahan."
+    );
+  }
+}
+
+
+/* =========================================================
+   HAPUS ASPIRASI
+========================================================= */
+
+async function hapusAspirasi(id) {
+
+  const yakin =
+    confirm(
+      "Apakah Anda yakin ingin menghapus aspirasi ini?"
+    );
+
+
+  if (!yakin) {
     return;
   }
 
 
   try {
 
-    const { data, error } = await supabase
+    const {
+      error
+    } = await supabase
       .from("aspirasi")
-      .select("*")
-      .order("created_at", {
-        ascending: false
-      });
+      .delete()
+      .eq(
+        "id",
+        id
+      );
 
 
     if (error) {
-
-      console.error(error);
-
-      container.innerHTML = `
-        <div class="result">
-          ❌ Tidak dapat mengambil data aspirasi.
-          <br><br>
-          ${escapeHTML(error.message)}
-        </div>
-      `;
-
-      return;
+      throw error;
     }
 
 
-    const aspirasi =
-      data || [];
+    alert(
+      "✅ Aspirasi berhasil dihapus."
+    );
 
 
-    // ========================================================
-    // STATISTIK
-    // ========================================================
-
-    const total =
-      aspirasi.length;
-
-    const menunggu =
-      aspirasi.filter(
-        item =>
-          item.status === "Menunggu"
-      ).length;
-
-    const diproses =
-      aspirasi.filter(
-        item =>
-          item.status === "Diproses"
-      ).length;
-
-    const selesai =
-      aspirasi.filter(
-        item =>
-          item.status === "Selesai"
-      ).length;
-
-
-    if (stats) {
-
-      stats.innerHTML = `
-        <div
-          style="
-            display:grid;
-            grid-template-columns:repeat(4,1fr);
-            gap:15px;
-          "
-        >
-
-          <div class="result">
-            <strong>Total Aspirasi</strong>
-            <h2>${total}</h2>
-          </div>
-
-          <div class="result">
-            <strong>Menunggu</strong>
-            <h2>${menunggu}</h2>
-          </div>
-
-          <div class="result">
-            <strong>Diproses</strong>
-            <h2>${diproses}</h2>
-          </div>
-
-          <div class="result">
-            <strong>Selesai</strong>
-            <h2>${selesai}</h2>
-          </div>
-
-        </div>
-      `;
-
-    }
-
-
-    if (aspirasi.length === 0) {
-
-      container.innerHTML = `
-        <div class="result">
-          Belum ada aspirasi masuk.
-        </div>
-      `;
-
-      return;
-    }
-
-
-    // ========================================================
-    // TABEL ASPIRASI
-    // ========================================================
-
-    let html = `
-      <div
-        style="
-          background:white;
-          border-radius:15px;
-          padding:20px;
-          overflow-x:auto;
-        "
-      >
-
-        <h3>
-          📋 Daftar Aspirasi Masyarakat
-        </h3>
-
-        <table
-          style="
-            width:100%;
-            border-collapse:collapse;
-            min-width:1000px;
-          "
-        >
-
-          <thead>
-
-            <tr
-              style="
-                text-align:left;
-                border-bottom:2px solid #dce5df;
-              "
-            >
-
-              <th style="padding:12px;">
-                Tiket
-              </th>
-
-              <th style="padding:12px;">
-                Pengirim
-              </th>
-
-              <th style="padding:12px;">
-                Wilayah
-              </th>
-
-              <th style="padding:12px;">
-                Kategori
-              </th>
-
-              <th style="padding:12px;">
-                Aspirasi
-              </th>
-
-              <th style="padding:12px;">
-                Status
-              </th>
-
-              <th style="padding:12px;">
-                Tanggapan
-              </th>
-
-              <th style="padding:12px;">
-                Aksi
-              </th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-    `;
-
-
-    aspirasi.forEach(item => {
-
-      const status =
-        item.status || "Menunggu";
-
-
-      html += `
-        <tr
-          style="
-            border-bottom:1px solid #e5ebe7;
-            vertical-align:top;
-          "
-        >
-
-          <td style="padding:12px;">
-            <strong>
-              ${escapeHTML(item.nomor_tiket)}
-            </strong>
-          </td>
-
-          <td style="padding:12px;">
-            ${escapeHTML(item.nama || "Anonim")}
-            <br>
-            <small>
-              ${escapeHTML(item.whatsapp || "")}
-            </small>
-          </td>
-
-          <td style="padding:12px;">
-            ${escapeHTML(item.dusun || "")}
-            <br>
-            ${escapeHTML(item.rt_rw || "")}
-          </td>
-
-          <td style="padding:12px;">
-            ${escapeHTML(item.kategori || "")}
-          </td>
-
-          <td
-            style="
-              padding:12px;
-              max-width:300px;
-            "
-          >
-            ${escapeHTML(item.isi_aspirasi || "")}
-          </td>
-
-          <td style="padding:12px;">
-
-            <select
-              class="status-select"
-              data-id="${escapeHTML(item.id)}"
-            >
-
-              <option
-                value="Menunggu"
-                ${status === "Menunggu" ? "selected" : ""}
-              >
-                Menunggu
-              </option>
-
-              <option
-                value="Diproses"
-                ${status === "Diproses" ? "selected" : ""}
-              >
-                Diproses
-              </option>
-
-              <option
-                value="Selesai"
-                ${status === "Selesai" ? "selected" : ""}
-              >
-                Selesai
-              </option>
-
-              <option
-                value="Ditolak"
-                ${status === "Ditolak" ? "selected" : ""}
-              >
-                Ditolak
-              </option>
-
-            </select>
-
-          </td>
-
-          <td style="padding:12px;">
-
-            <textarea
-              class="tanggapan-input"
-              data-id="${escapeHTML(item.id)}"
-              rows="4"
-              style="
-                width:250px;
-                padding:8px;
-                border:1px solid #d7e0da;
-                border-radius:8px;
-              "
-            >${escapeHTML(item.tanggapan || "")}</textarea>
-
-          </td>
-
-          <td style="padding:12px;">
-
-            <button
-              class="save-aspirasi-btn btn btn-primary"
-              data-id="${escapeHTML(item.id)}"
-              type="button"
-            >
-              💾 Simpan
-            </button>
-
-          </td>
-
-        </tr>
-      `;
-
-    });
-
-
-    html += `
-          </tbody>
-
-        </table>
-
-      </div>
-    `;
-
-
-    container.innerHTML = html;
-
-
-    // ========================================================
-    // PASANG EVENT TOMBOL SIMPAN
-    // ========================================================
-
-    document
-      .querySelectorAll(".save-aspirasi-btn")
-      .forEach(button => {
-
-        button.addEventListener(
-          "click",
-          async function () {
-
-            const id =
-              this.dataset.id;
-
-            const statusSelect =
-              document.querySelector(
-                `.status-select[data-id="${id}"]`
-              );
-
-            const tanggapanInput =
-              document.querySelector(
-                `.tanggapan-input[data-id="${id}"]`
-              );
-
-
-            const status =
-              statusSelect?.value || "Menunggu";
-
-            const tanggapan =
-              tanggapanInput?.value.trim() || "";
-
-
-            this.disabled = true;
-
-            this.textContent =
-              "⏳ Menyimpan...";
-
-
-            const {
-              error
-            } = await supabase
-              .from("aspirasi")
-              .update({
-                status: status,
-                tanggapan: tanggapan,
-                updated_at: new Date().toISOString()
-              })
-              .eq("id", id);
-
-
-            if (error) {
-
-              console.error(error);
-
-              alert(
-                "Gagal menyimpan: " +
-                error.message
-              );
-
-            } else {
-
-              alert(
-                "✅ Aspirasi berhasil diperbarui."
-              );
-
-            }
-
-
-            this.disabled = false;
-
-            this.textContent =
-              "💾 Simpan";
-
-
-            await loadAdminAspirasi();
-
-          }
-
-        );
-
-      });
+    await muatDataAdmin();
 
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "ERROR DELETE:",
+      error
+    );
 
-    container.innerHTML = `
-      <div class="result">
-        ❌ Terjadi kesalahan saat mengambil data.
-      </div>
-    `;
 
+    alert(
+      "❌ Gagal menghapus aspirasi."
+    );
   }
-
 }
 
 
-// ============================================================
-// 10. LOGOUT ADMIN
-// ============================================================
+/* =========================================================
+   CEK SESSION LOGIN
+========================================================= */
 
-async function logoutAdmin() {
-
-  await supabase.auth.signOut();
-
-
-  if (adminDash) {
-
-    adminDash.innerHTML = "";
-
-    adminDash.classList.add("hidden");
-
-  }
-
-
-  if (logoutBtn) {
-
-    logoutBtn.classList.add("hidden");
-
-  }
-
-
-  if (loginMsg) {
-
-    loginMsg.innerHTML =
-      "Anda telah logout.";
-
-  }
-
-
-  window.location.hash =
-    "login-admin";
-
-}
-
-
-if (logoutBtn) {
-
-  logoutBtn.addEventListener(
-    "click",
-    logoutAdmin
-  );
-
-}
-
-
-// ============================================================
-// 11. CEK SESSION SAAT HALAMAN DIBUKA
-// ============================================================
-
-async function checkExistingSession() {
+async function cekSession() {
 
   try {
 
     const {
-      data
-    } = await supabase.auth.getSession();
+      data,
+      error
+    } =
+      await supabase.auth
+        .getSession();
 
 
-    if (data?.session) {
+    if (error) {
+      throw error;
+    }
 
-      await showAdminDashboard();
+
+    if (
+      data &&
+      data.session &&
+      data.session.user
+    ) {
+
+      await tampilkanDashboard(
+        data.session.user
+      );
 
     }
 
   } catch (error) {
 
     console.error(
-      "Session error:",
+      "ERROR SESSION:",
       error
     );
 
   }
-
 }
 
 
-checkExistingSession();
+cekSession();
 
 
-// ============================================================
-// 12. PERUBAHAN LOGIN / LOGOUT SUPABASE
-// ============================================================
+/* =========================================================
+   PERUBAHAN SESSION
+========================================================= */
 
 supabase.auth.onAuthStateChange(
-  async (event, session) => {
+  async (
+    event,
+    session
+  ) => {
 
-    if (event === "SIGNED_IN" && session) {
+    if (
+      event === "SIGNED_IN" &&
+      session
+    ) {
 
-      await showAdminDashboard();
+      await tampilkanDashboard(
+        session.user
+      );
 
     }
 
 
-    if (event === "SIGNED_OUT") {
+    if (
+      event === "SIGNED_OUT"
+    ) {
 
-      if (adminDash) {
+      const dashboard =
+        $("adminDash");
 
-        adminDash.innerHTML = "";
+      if (dashboard) {
 
-        adminDash.classList.add("hidden");
+        dashboard.classList.add(
+          "hidden"
+        );
+
+        dashboard.innerHTML = "";
 
       }
 
+
+      const logoutBtn =
+        $("logoutBtn");
+
       if (logoutBtn) {
 
-        logoutBtn.classList.add("hidden");
+        logoutBtn.classList.add(
+          "hidden"
+        );
 
       }
 
@@ -1144,99 +1739,61 @@ supabase.auth.onAuthStateChange(
 );
 
 
-// ============================================================
-// 13. BERITA
-// Untuk sementara menampilkan informasi statis.
-// Nanti bisa kita buat tabel berita di Supabase.
-// ============================================================
+/* =========================================================
+   LOGOUT
+========================================================= */
 
-function loadNews() {
-
-  if (!newsList) {
-    return;
-  }
+const logoutBtn =
+  $("logoutBtn");
 
 
-  newsList.innerHTML = `
-    <article>
+if (logoutBtn) {
 
-      <h3>
-        Selamat Datang di Website BPD Desa Kendalserut
-      </h3>
+  logoutBtn.addEventListener(
+    "click",
+    async function () {
 
-      <p>
-        Website ini menjadi media informasi,
-        komunikasi, dan penyampaian aspirasi
-        masyarakat Desa Kendalserut kepada BPD.
-      </p>
-
-    </article>
-
-    <article>
-
-      <h3>
-        Layanan Aspirasi Masyarakat
-      </h3>
-
-      <p>
-        Masyarakat dapat menyampaikan aspirasi,
-        saran, dan masukan secara online melalui
-        layanan aspirasi.
-      </p>
-
-    </article>
-
-    <article>
-
-      <h3>
-        Transparansi Aspirasi
-      </h3>
-
-      <p>
-        Setiap aspirasi yang masuk mendapatkan
-        nomor tiket sehingga masyarakat dapat
-        memantau perkembangannya.
-      </p>
-
-    </article>
-  `;
-
-}
+      const yakin =
+        confirm(
+          "Apakah Anda yakin ingin logout?"
+        );
 
 
-loadNews();
+      if (!yakin) {
+        return;
+      }
 
 
-// ============================================================
-// 14. ISI OTOMATIS NOMOR TIKET TERAKHIR
-// ============================================================
+      const {
+        error
+      } =
+        await supabase.auth
+          .signOut();
 
-const lastTicket =
-  localStorage.getItem(
-    "lastAspirasiTicket"
+
+      if (error) {
+
+        console.error(
+          "ERROR LOGOUT:",
+          error
+        );
+
+        alert(
+          "❌ Gagal logout."
+        );
+
+      }
+
+    }
   );
 
-
-if (lastTicket) {
-
-  const ticketInput =
-    document.getElementById("ticket");
-
-
-  if (ticketInput) {
-
-    ticketInput.placeholder =
-      `Tiket terakhir: ${lastTicket}`;
-
-  }
-
 }
 
 
-// ============================================================
-// SELESAI
-// ============================================================
+/* =========================================================
+   SELESAI
+========================================================= */
 
 console.log(
-  "BPD Desa Kendalserut app.js berhasil dimuat."
+  "✅ app.js BPD Desa Kendalserut berhasil dimuat."
 );
