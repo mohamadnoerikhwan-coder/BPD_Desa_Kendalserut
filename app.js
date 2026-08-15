@@ -1,1221 +1,1242 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+// ============================================================
+// APP.JS - BPD DESA KENDALSERUT
+// Supabase + Aspirasi + Tiket + Cek Status + Login Admin
+// ============================================================
 
-  <meta
-    name="description"
-    content="Website resmi BPD Desa Kendalserut, Kecamatan Pangkah, Kabupaten Tegal. Wadah informasi dan aspirasi masyarakat."
-  >
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-  <meta name="theme-color" content="#0b5d3b">
+// ============================================================
+// 1. KONFIGURASI SUPABASE
+// ============================================================
 
-  <title>BPD Desa Kendalserut — Wadah Informasi dan Aspirasi Masyarakat</title>
+// GANTI DENGAN DATA PROJECT SUPABASE ANDA
+const SUPABASE_URL = "MASUKKAN_SUPABASE_URL_ANDA";
+const SUPABASE_ANON_KEY = "MASUKKAN_SUPABASE_ANON_KEY_ANDA";
 
-  <link rel="stylesheet" href="./style.css">
+const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
 
-  <style>
-    /* =====================================================
-       TAMBAHAN KOMPATIBILITAS FORM & LOGIN
-    ====================================================== */
 
-    .hidden {
-      display: none !important;
+// ============================================================
+// 2. AMBIL ELEMEN HTML
+// ============================================================
+
+const aspForm = document.getElementById("aspForm");
+const aspMsg = document.getElementById("aspMsg");
+
+const checkForm = document.getElementById("checkForm");
+const checkResult = document.getElementById("checkResult");
+
+const loginForm = document.getElementById("loginForm");
+const loginMsg = document.getElementById("loginMsg");
+
+const adminDash = document.getElementById("adminDash");
+const logoutBtn = document.getElementById("logoutBtn");
+
+const newsList = document.getElementById("newsList");
+
+
+// ============================================================
+// 3. FUNGSI NOMOR TIKET
+// Contoh: ASP-20260816-4827
+// ============================================================
+
+function generateTicket() {
+
+  const now = new Date();
+
+  const year = now.getFullYear();
+
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+
+  const day = String(now.getDate()).padStart(2, "0");
+
+  const random = Math.floor(1000 + Math.random() * 9000);
+
+  return `ASP-${year}${month}${day}-${random}`;
+}
+
+
+// ============================================================
+// 4. ESCAPE HTML
+// Supaya isi aspirasi tidak bisa menyisipkan HTML berbahaya
+// ============================================================
+
+function escapeHTML(value) {
+
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+// ============================================================
+// 5. KIRIM ASPIRASI
+// ============================================================
+
+if (aspForm) {
+
+  aspForm.addEventListener("submit", async function (event) {
+
+    event.preventDefault();
+
+    if (aspMsg) {
+      aspMsg.innerHTML = "⏳ Sedang mengirim aspirasi...";
     }
 
-    .service-form {
-      max-width: 850px;
-      margin: 25px auto 0;
-      background: #fff;
-      padding: 28px;
-      border-radius: 20px;
-      border: 1px solid #e5ebe7;
-      box-shadow: 0 8px 28px rgba(0,0,0,.05);
+    const namaInput = document.getElementById("nama");
+    const wilayahInput = document.getElementById("wilayah");
+    const whatsappInput = document.getElementById("whatsapp");
+    const kategoriInput = document.getElementById("kategori");
+    const isiInput = document.getElementById("isi");
+    const anonimInput = aspForm.querySelector('input[name="anonim"]');
+
+    const nama = namaInput?.value.trim() || "";
+    const wilayah = wilayahInput?.value.trim() || "";
+    const whatsapp = whatsappInput?.value.trim() || "";
+    const kategori = kategoriInput?.value || "";
+    const isi = isiInput?.value.trim() || "";
+    const anonim = anonimInput?.checked || false;
+
+
+    // Validasi
+    if (!kategori) {
+
+      aspMsg.innerHTML =
+        "⚠️ Silakan pilih kategori aspirasi.";
+
+      return;
     }
 
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
+    if (!isi) {
+
+      aspMsg.innerHTML =
+        "⚠️ Isi aspirasi belum diisi.";
+
+      return;
     }
 
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
+
+    // Pisahkan Dusun / Wilayah menjadi dusun dan RT/RW
+    let dusun = wilayah;
+    let rt_rw = "";
+
+    const wilayahParts = wilayah.split(",");
+
+    if (wilayahParts.length > 1) {
+
+      dusun = wilayahParts[0].trim();
+
+      rt_rw = wilayahParts
+        .slice(1)
+        .join(",")
+        .trim();
+
     }
 
-    .form-group.full {
-      grid-column: 1 / -1;
-    }
 
-    .form-group label {
-      font-weight: 700;
-      font-size: 14px;
-      color: #29483a;
-    }
+    // Buat nomor tiket
+    const nomor_tiket = generateTicket();
 
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid #d7e0da;
-      border-radius: 10px;
-      padding: 12px 13px;
-      font-family: inherit;
-      font-size: 14px;
-      background: #fff;
-    }
 
-    .form-group textarea {
-      min-height: 130px;
-      resize: vertical;
-    }
+    try {
 
-    .form-check {
-      display: flex;
-      gap: 9px;
-      align-items: center;
-      font-size: 13px;
-      color: #58665e;
-    }
+      const { data, error } = await supabase
+        .from("aspirasi")
+        .insert([
+          {
+            nomor_tiket: nomor_tiket,
+            nama: anonim ? "Anonim" : nama,
+            dusun: dusun,
+            rt_rw: rt_rw,
+            whatsapp: anonim ? "" : whatsapp,
+            kategori: kategori,
+            isi_aspirasi: isi,
+            anonim: anonim,
+            status: "Menunggu",
+            tanggapan: "",
+          }
+        ])
+        .select()
+        .single();
 
-    .form-check input {
-      width: auto;
-    }
 
-    .form-message {
-      margin-top: 16px;
-      padding: 13px 15px;
-      border-radius: 10px;
-      background: #f3f7f4;
-      color: #28563f;
-      line-height: 1.6;
-    }
+      if (error) {
 
-    .login-section {
-      background: #f4f7f5;
-    }
+        console.error("Supabase insert error:", error);
 
-    .login-card {
-      max-width: 480px;
-      margin: 25px auto 0;
-      background: #fff;
-      padding: 30px;
-      border-radius: 20px;
-      border: 1px solid #e1e8e3;
-      box-shadow: 0 10px 30px rgba(0,0,0,.06);
-    }
+        aspMsg.innerHTML =
+          "❌ Aspirasi gagal dikirim.<br><br>" +
+          "<small>" +
+          escapeHTML(error.message) +
+          "</small>";
 
-    .login-card h3 {
-      margin-top: 0;
-      margin-bottom: 7px;
-    }
-
-    .login-card p {
-      color: #6c7871;
-    }
-
-    .login-message {
-      margin-top: 14px;
-      min-height: 20px;
-      color: #9a4141;
-      font-size: 14px;
-    }
-
-    .admin-topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 15px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
-    }
-
-    .admin-topbar .admin-user {
-      color: #fff;
-    }
-
-    .logout-button {
-      border: 0;
-      background: #fff;
-      color: #245c45;
-      border-radius: 10px;
-      padding: 10px 15px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .news-section {
-      background: #fff;
-    }
-
-    #newsList {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
-      margin-top: 25px;
-    }
-
-    #newsList article {
-      background: #fff;
-      border: 1px solid #e3e9e5;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 5px 18px rgba(0,0,0,.04);
-    }
-
-    #newsList h3 {
-      margin-top: 0;
-    }
-
-    .result {
-      margin-top: 18px;
-      background: #f4f8f5;
-      border-radius: 13px;
-      padding: 18px;
-      line-height: 1.7;
-    }
-
-    .ticket-result {
-      border-left: 4px solid #245c45;
-    }
-
-    .status {
-      display: inline-block;
-      background: #eaf4ee;
-      color: #245c45;
-      padding: 4px 9px;
-      border-radius: 999px;
-      font-weight: 700;
-    }
-
-    @media (max-width: 760px) {
-
-      .form-grid {
-        grid-template-columns: 1fr;
+        return;
       }
 
-      .form-group.full {
-        grid-column: auto;
-      }
 
-      #newsList {
-        grid-template-columns: 1fr;
-      }
+      // ======================================================
+      // BERHASIL
+      // ======================================================
 
-      .service-form,
-      .login-card {
-        padding: 20px;
-      }
-    }
-  </style>
-</head>
+      aspMsg.innerHTML = `
+        <div class="result ticket-result">
 
-<body>
+          <h3>✅ Aspirasi Berhasil Dikirim</h3>
 
-  <!-- =====================================================
-       TOP BAR
-  ====================================================== -->
+          <p>
+            Terima kasih. Aspirasi Anda telah diterima
+            oleh BPD Desa Kendalserut.
+          </p>
 
-  <div class="topbar">
+          <p>
+            <strong>Nomor Tiket Anda:</strong>
+          </p>
 
-    <div class="container topbar-inner">
-
-      <span>
-        📍 Desa Kendalserut, Kec. Pangkah, Kab. Tegal, Jawa Tengah
-      </span>
-
-      <div class="top-contact">
-
-        <span>
-          ✉️ bpd.kendalserut@gmail.com
-        </span>
-
-        <span>
-          ☎️ (0283) 1234567
-        </span>
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       HEADER
-  ====================================================== -->
-
-  <header class="site-header">
-
-    <div class="container header-inner">
-
-      <a
-        class="brand"
-        href="#beranda"
-        aria-label="BPD Desa Kendalserut"
-      >
-
-        <img
-          src="./logo-bpd-kendalserut.jpg"
-          alt="Logo BPD Desa Kendalserut"
-          loading="eager"
-        >
-
-        <div>
-
-          <div class="brand-title">
-            BPD DESA KENDALSERUT
+          <div
+            style="
+              font-size:22px;
+              font-weight:800;
+              letter-spacing:1px;
+              padding:14px;
+              margin:10px 0;
+              background:#ffffff;
+              border-radius:10px;
+              text-align:center;
+              border:1px dashed #245c45;
+            "
+          >
+            ${escapeHTML(data.nomor_tiket)}
           </div>
 
-          <div class="brand-subtitle">
-            Badan Permusyawaratan Desa
-          </div>
+          <p>
+            ⚠️ Simpan nomor tiket tersebut untuk
+            mengecek status aspirasi Anda.
+          </p>
 
         </div>
-
-      </a>
-
-
-      <button
-        class="menu-toggle"
-        id="navBtn"
-        type="button"
-        aria-label="Buka menu"
-      >
-        ☰
-      </button>
+      `;
 
 
-      <nav
-        class="main-nav"
-        id="nav"
-        aria-label="Navigasi utama"
-      >
-
-        <a class="active" href="#beranda">
-          Beranda
-        </a>
-
-        <a href="#profil">
-          Profil BPD
-        </a>
-
-        <a href="#struktur">
-          Struktur BPD
-        </a>
-
-        <a href="#aspirasi">
-          Aspirasi
-        </a>
-
-        <a href="#cek">
-          Cek Aspirasi
-        </a>
-
-        <a href="#kontak">
-          Kontak
-        </a>
-
-        <a class="admin-btn" href="#login-admin">
-          ♟ Login Admin
-        </a>
-
-      </nav>
-
-    </div>
-
-  </header>
+      // Kosongkan form
+      aspForm.reset();
 
 
-  <main id="beranda">
+      // Simpan tiket sementara di browser
+      localStorage.setItem(
+        "lastAspirasiTicket",
+        data.nomor_tiket
+      );
 
 
-    <!-- =====================================================
-         HERO
-    ====================================================== -->
+    } catch (error) {
 
-    <section
-      class="hero"
+      console.error(error);
+
+      aspMsg.innerHTML =
+        "❌ Terjadi kesalahan saat mengirim aspirasi.";
+
+    }
+
+  });
+
+}
+
+
+// ============================================================
+// 6. CEK STATUS ASPIRASI
+// ============================================================
+
+if (checkForm) {
+
+  checkForm.addEventListener("submit", async function (event) {
+
+    event.preventDefault();
+
+    const ticketInput =
+      document.getElementById("ticket");
+
+    const ticket =
+      ticketInput?.value.trim().toUpperCase() || "";
+
+
+    if (!ticket) {
+
+      checkResult.innerHTML = `
+        <div class="result">
+          ⚠️ Silakan masukkan nomor tiket.
+        </div>
+      `;
+
+      return;
+    }
+
+
+    checkResult.innerHTML =
+      `<div class="result">⏳ Mencari data aspirasi...</div>`;
+
+
+    try {
+
+      const { data, error } = await supabase
+        .from("aspirasi")
+        .select(
+          "nomor_tiket,kategori,isi_aspirasi,status,tanggapan,created_at,updated_at"
+        )
+        .eq("nomor_tiket", ticket)
+        .maybeSingle();
+
+
+      if (error) {
+
+        console.error("Check ticket error:", error);
+
+        checkResult.innerHTML = `
+          <div class="result">
+            ❌ Terjadi kesalahan saat mencari tiket.
+            <br><br>
+            <small>${escapeHTML(error.message)}</small>
+          </div>
+        `;
+
+        return;
+      }
+
+
+      if (!data) {
+
+        checkResult.innerHTML = `
+          <div class="result">
+            ❌ Nomor tiket tidak ditemukan.
+            <br><br>
+            Pastikan nomor tiket yang dimasukkan sudah benar.
+          </div>
+        `;
+
+        return;
+      }
+
+
+      // ======================================================
+      // TAMPILKAN HASIL
+      // ======================================================
+
+      const createdDate = data.created_at
+        ? new Date(data.created_at).toLocaleString("id-ID")
+        : "-";
+
+
+      const tanggapan =
+        data.tanggapan &&
+        data.tanggapan.trim() !== ""
+          ? escapeHTML(data.tanggapan)
+          : "Belum ada tanggapan dari BPD.";
+
+
+      checkResult.innerHTML = `
+        <div class="result ticket-result">
+
+          <h3>📋 Data Aspirasi</h3>
+
+          <p>
+            <strong>Nomor Tiket:</strong><br>
+            ${escapeHTML(data.nomor_tiket)}
+          </p>
+
+          <p>
+            <strong>Kategori:</strong><br>
+            ${escapeHTML(data.kategori)}
+          </p>
+
+          <p>
+            <strong>Isi Aspirasi:</strong><br>
+            ${escapeHTML(data.isi_aspirasi)}
+          </p>
+
+          <p>
+            <strong>Status:</strong><br>
+            <span class="status">
+              ${escapeHTML(data.status || "Menunggu")}
+            </span>
+          </p>
+
+          <p>
+            <strong>Tanggapan BPD:</strong><br>
+            ${tanggapan}
+          </p>
+
+          <p>
+            <strong>Tanggal Pengiriman:</strong><br>
+            ${createdDate}
+          </p>
+
+        </div>
+      `;
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      checkResult.innerHTML = `
+        <div class="result">
+          ❌ Terjadi kesalahan sistem.
+        </div>
+      `;
+
+    }
+
+  });
+
+}
+
+
+// ============================================================
+// 7. LOGIN ADMIN
+// ============================================================
+
+if (loginForm) {
+
+  loginForm.addEventListener("submit", async function (event) {
+
+    event.preventDefault();
+
+    const email =
+      document.getElementById("email")?.value.trim();
+
+    const password =
+      document.getElementById("password")?.value;
+
+
+    if (loginMsg) {
+      loginMsg.innerHTML = "⏳ Memeriksa akun...";
+    }
+
+
+    try {
+
+      const { data, error } =
+        await supabase.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+
+
+      if (error) {
+
+        console.error("Login error:", error);
+
+        loginMsg.innerHTML =
+          "❌ Email atau password salah.";
+
+        return;
+      }
+
+
+      loginMsg.innerHTML =
+        "✅ Login berhasil.";
+
+
+      await showAdminDashboard();
+
+
+      // Scroll ke dashboard
+      setTimeout(() => {
+
+        adminDash?.scrollIntoView({
+          behavior: "smooth"
+        });
+
+      }, 300);
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      loginMsg.innerHTML =
+        "❌ Terjadi kesalahan saat login.";
+
+    }
+
+  });
+
+}
+
+
+// ============================================================
+// 8. DASHBOARD ADMIN
+// ============================================================
+
+async function showAdminDashboard() {
+
+  if (!adminDash) {
+    return;
+  }
+
+
+  adminDash.classList.remove("hidden");
+
+
+  adminDash.innerHTML = `
+    <div
+      class="section"
       style="
-        background-image: url('./background-header.jpg');
-        background-size: cover;
-        background-position: center center;
-        background-repeat: no-repeat;
+        background:#0b5d3b;
+        color:white;
       "
     >
 
-      <div class="hero-overlay"></div>
-
-      <div class="container hero-content">
-
-        <span class="eyebrow">
-          BADAN PERMUSYAWARATAN DESA
-        </span>
-
-        <h1>
-          BPD DESA<br>
-          KENDALSERUT
-        </h1>
-
-        <p class="hero-lead">
-          Wadah Informasi dan Aspirasi Masyarakat
-        </p>
-
-        <div class="gold-line"></div>
-
-        <p class="hero-copy">
-          Mari sampaikan aspirasi, saran, dan masukan
-          <br class="desktop-only">
-          untuk kemajuan Desa Kendalserut.
-        </p>
-
-        <div class="hero-actions">
-
-          <a
-            class="btn btn-primary"
-            href="#aspirasi"
-          >
-            📣 Sampaikan Aspirasi
-          </a>
-
-          <a
-            class="btn btn-light"
-            href="#cek"
-          >
-            🎫 Cek Aspirasi
-          </a>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         QUICK MENU
-    ====================================================== -->
-
-    <section class="quick-section">
-
-      <div class="container quick-grid">
-
-        <a class="info-card" href="#aspirasi">
-
-          <span class="icon-circle">
-            📣
-          </span>
-
-          <div>
-
-            <h3>
-              Sampaikan Aspirasi
-            </h3>
-
-            <p>
-              Sampaikan aspirasi, saran, dan masukan Anda
-              untuk kemajuan desa.
-            </p>
-
-          </div>
-
-          <span class="arrow">
-            →
-          </span>
-
-        </a>
-
-
-        <a class="info-card" href="#cek">
-
-          <span class="icon-circle">
-            🔎
-          </span>
-
-          <div>
-
-            <h3>
-              Lacak Aspirasi
-            </h3>
-
-            <p>
-              Pantau status aspirasi Anda secara mudah
-              dan transparan.
-            </p>
-
-          </div>
-
-          <span class="arrow">
-            →
-          </span>
-
-        </a>
-
-
-        <a class="info-card" href="#profil">
-
-          <span class="icon-circle">
-            🏛
-          </span>
-
-          <div>
-
-            <h3>
-              Informasi BPD
-            </h3>
-
-            <p>
-              Dapatkan informasi seputar kegiatan dan
-              program BPD Desa Kendalserut.
-            </p>
-
-          </div>
-
-          <span class="arrow">
-            →
-          </span>
-
-        </a>
-
-
-        <div class="village-card">
-
-          <h3>
-            Tentang Desa Kendalserut
-          </h3>
-
-          <div class="village-line"></div>
-
-          <p>📍 Desa Kendalserut</p>
-          <p>⌖ Kecamatan Pangkah</p>
-          <p>◉ Kabupaten Tegal</p>
-          <p>★ Jawa Tengah</p>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         PROFIL
-    ====================================================== -->
-
-    <section
-      id="profil"
-      class="section"
-    >
-
-      <div class="container split">
-
-        <div>
-
-          <span class="section-label">
-            PROFIL
-          </span>
-
-          <h2>
-            Sekilas Tentang BPD
-          </h2>
-
-          <div class="small-gold-line"></div>
-
-          <p>
-            Badan Permusyawaratan Desa (BPD) merupakan lembaga
-            yang melaksanakan fungsi pemerintahan yang anggotanya
-            merupakan wakil dari penduduk desa berdasarkan
-            keterwakilan wilayah dan ditetapkan secara demokratis.
-          </p>
-
-          <p>
-            BPD berperan menampung dan menyalurkan aspirasi
-            masyarakat serta menjalankan fungsi pengawasan demi
-            terwujudnya tata kelola pemerintahan desa yang baik.
-          </p>
-
-        </div>
-
-
-        <div class="quote-card">
-
-          <span class="quote-mark">
-            “
-          </span>
-
-          <p>
-            Bersama BPD, membangun desa dengan aspirasi,
-            partisipasi, dan gotong royong.
-          </p>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         STRUKTUR
-    ====================================================== -->
-
-    <section
-      id="struktur"
-      class="section section-soft"
-    >
-
       <div class="container">
 
-        <span class="section-label">
-          KELEMBAGAAN
-        </span>
-
-        <h2>
-          Struktur BPD Desa Kendalserut
-        </h2>
-
-        <div class="small-gold-line"></div>
-
-        <div class="structure-grid">
-
-          <div class="member">
-            <strong>Siti Muslicha, Amd</strong>
-            <span>Ketua</span>
-          </div>
-
-          <div class="member">
-            <strong>Akhmad Suswanto, S.Pd.SD</strong>
-            <span>Wakil Ketua</span>
-          </div>
-
-          <div class="member">
-            <strong>Sunjoyo, SM</strong>
-            <span>Sekretaris</span>
-          </div>
-
-          <div class="member">
-            <strong>Farkhatun</strong>
-            <span>
-              Ketua Bidang Pemerintahan dan Pembinaan Masyarakat
-            </span>
-          </div>
-
-          <div class="member">
-            <strong>Yasin Nurjati Kusumo</strong>
-            <span>
-              Anggota Bidang Pemerintahan dan Pembinaan Masyarakat
-            </span>
-          </div>
-
-          <div class="member">
-            <strong>Mohamad Nur Ikhwan</strong>
-            <span>
-              Ketua Bidang Pembangunan dan Pemberdayaan Masyarakat
-            </span>
-          </div>
-
-          <div class="member">
-            <strong>Udi Pamungkas</strong>
-            <span>
-              Anggota Bidang Pembangunan dan Pemberdayaan Masyarakat
-            </span>
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         ASPIRASI
-    ====================================================== -->
-
-    <section
-      id="aspirasi"
-      class="section"
-    >
-
-      <div class="container">
-
-        <div class="action-panel">
+        <div class="admin-topbar">
 
           <div>
 
-            <span class="section-label">
-              LAYANAN MASYARAKAT
-            </span>
-
-            <h2>
-              Sampaikan Aspirasi Anda
+            <h2 style="margin:0;color:white;">
+              Dashboard Admin BPD
             </h2>
 
-            <p>
-              Gunakan layanan aspirasi untuk menyampaikan
-              saran, masukan, atau kebutuhan masyarakat
-              kepada BPD Desa Kendalserut.
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <!-- FORM ASPIRASI -->
-
-        <form
-          id="aspForm"
-          class="service-form"
-        >
-
-          <div class="form-grid">
-
-            <div class="form-group">
-
-              <label for="nama">
-                Nama
-              </label>
-
-              <input
-                id="nama"
-                name="nama"
-                type="text"
-                placeholder="Nama Anda"
-              >
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="wilayah">
-                Dusun / Wilayah
-              </label>
-
-              <input
-                id="wilayah"
-                name="wilayah"
-                type="text"
-                placeholder="Contoh: RT 02 / RW 05"
-              >
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="whatsapp">
-                Nomor WhatsApp
-              </label>
-
-              <input
-                id="whatsapp"
-                name="whatsapp"
-                type="text"
-                placeholder="08xxxxxxxxxx"
-              >
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="kategori">
-                Kategori Aspirasi
-              </label>
-
-              <select
-                id="kategori"
-                name="kategori"
-                required
-              >
-
-                <option value="">
-                  Pilih kategori
-                </option>
-
-                <option value="Pemerintahan">
-                  Pemerintahan
-                </option>
-
-                <option value="Pembangunan">
-                  Pembangunan
-                </option>
-
-                <option value="Pemberdayaan Masyarakat">
-                  Pemberdayaan Masyarakat
-                </option>
-
-                <option value="Infrastruktur">
-                  Infrastruktur
-                </option>
-
-                <option value="Sosial">
-                  Sosial
-                </option>
-
-                <option value="Kesehatan">
-                  Kesehatan
-                </option>
-
-                <option value="Pendidikan">
-                  Pendidikan
-                </option>
-
-                <option value="Lainnya">
-                  Lainnya
-                </option>
-
-              </select>
-
-            </div>
-
-
-            <div class="form-group full">
-
-              <label for="isi">
-                Isi Aspirasi
-              </label>
-
-              <textarea
-                id="isi"
-                name="isi"
-                required
-                placeholder="Tuliskan aspirasi, saran, atau masukan Anda..."
-              ></textarea>
-
-            </div>
-
-
-            <div class="form-group full">
-
-              <label class="form-check">
-
-                <input
-                  type="checkbox"
-                  name="anonim"
-                >
-
-                Kirim sebagai anonim
-
-              </label>
-
-            </div>
-
-
-            <div class="form-group full">
-
-              <button
-                class="btn btn-primary"
-                type="submit"
-              >
-                📣 Kirim Aspirasi
-              </button>
-
-            </div>
-
-          </div>
-
-
-          <div
-            id="aspMsg"
-            class="form-message"
-            aria-live="polite"
-          ></div>
-
-        </form>
-
-      </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         CEK ASPIRASI
-    ====================================================== -->
-
-    <section
-      id="cek"
-      class="section section-soft"
-    >
-
-      <div class="container">
-
-        <div class="action-panel">
-
-          <div>
-
-            <span class="section-label">
-              PELACAKAN
-            </span>
-
-            <h2>
-              Cek Status Aspirasi
-            </h2>
-
-            <p>
-              Masukkan nomor tiket aspirasi untuk melihat
-              status dan tanggapan dari BPD.
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <form
-          id="checkForm"
-          class="service-form"
-        >
-
-          <div class="form-group">
-
-            <label for="ticket">
-              Nomor Tiket Aspirasi
-            </label>
-
-            <input
-              id="ticket"
-              name="ticket"
-              type="text"
-              required
-              placeholder="Contoh: ASP-20260814-7220"
+            <div
+              id="adminUser"
+              class="admin-user"
+              style="margin-top:5px;"
             >
+              Memuat...
+            </div>
 
           </div>
-
-          <br>
 
           <button
-            class="btn btn-primary"
-            type="submit"
+            id="dashboardLogout"
+            class="logout-button"
+            type="button"
           >
-            🔎 Cek Status
+            🚪 Logout
           </button>
 
-
-          <div
-            id="checkResult"
-            aria-live="polite"
-          ></div>
-
-        </form>
-
-      </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         BERITA / INFORMASI
-    ====================================================== -->
-
-    <section class="section news-section">
-
-      <div class="container">
-
-        <span class="section-label">
-          INFORMASI TERKINI
-        </span>
-
-        <h2>
-          Berita BPD Desa Kendalserut
-        </h2>
-
-        <div class="small-gold-line"></div>
-
-        <div id="newsList">
-
-          <article>
-            <h3>
-              Informasi sedang disiapkan
-            </h3>
-
-            <p>
-              Berita dan informasi BPD Desa Kendalserut
-              akan tampil di sini.
-            </p>
-          </article>
-
         </div>
 
       </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         KONTAK
-    ====================================================== -->
-
-    <section
-      id="kontak"
-      class="contact-section"
-    >
-
-      <div class="container contact-grid">
-
-        <div>
-
-          <span class="section-label light-label">
-            KONTAK
-          </span>
-
-          <h2>
-            Hubungi BPD Desa Kendalserut
-          </h2>
-
-          <p>
-            Untuk informasi dan komunikasi kelembagaan BPD,
-            silakan gunakan kanal kontak yang tersedia.
-          </p>
-
-        </div>
-
-
-        <div class="contact-box">
-
-          <p>
-            ✉️
-            <strong>
-              bpd.kendalserut@gmail.com
-            </strong>
-          </p>
-
-          <p>
-            ☎️
-            <strong>
-              (0283) 1234567
-            </strong>
-          </p>
-
-          <p>
-            📍 Desa Kendalserut,
-            Kecamatan Pangkah,
-            Kabupaten Tegal
-          </p>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         LOGIN ADMIN
-    ====================================================== -->
-
-    <section
-      id="login-admin"
-      class="section login-section"
-    >
-
-      <div class="container">
-
-        <span class="section-label">
-          ADMINISTRATOR
-        </span>
-
-        <h2>
-          Login Admin BPD
-        </h2>
-
-        <div class="small-gold-line"></div>
-
-
-        <form
-          id="loginForm"
-          class="login-card"
-        >
-
-          <h3>
-            Masuk ke Dashboard Admin
-          </h3>
-
-          <p>
-            Gunakan akun administrator BPD yang telah
-            terdaftar.
-          </p>
-
-
-          <div class="form-group">
-
-            <label for="email">
-              Email
-            </label>
-
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autocomplete="username"
-              required
-              placeholder="Email admin"
-            >
-
-          </div>
-
-          <br>
-
-
-          <div class="form-group">
-
-            <label for="password">
-              Password
-            </label>
-
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autocomplete="current-password"
-              required
-              placeholder="Password"
-            >
-
-          </div>
-
-          <br>
-
-
-          <button
-            class="btn btn-primary"
-            type="submit"
-          >
-            🔐 Masuk ke Dashboard
-          </button>
-
-
-          <div
-            id="loginMsg"
-            class="login-message"
-            aria-live="polite"
-          ></div>
-
-        </form>
-
-      </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         ADMIN DASHBOARD
-         
-         app.js akan mengisi bagian ini setelah login berhasil.
-    ====================================================== -->
-
-    <section
-      id="adminDash"
-      class="hidden"
-    ></section>
-
-
-    <!-- Tombol logout.
-         Awalnya tersembunyi dan akan ditampilkan oleh app.js
-         setelah admin berhasil login. -->
-
-    <div
-      class="container"
-      style="padding:20px 0;text-align:right;"
-    >
-
-      <button
-        id="logoutBtn"
-        class="logout-button hidden"
-        type="button"
-      >
-        🚪 Logout Admin
-      </button>
 
     </div>
 
 
-  </main>
+    <section
+      class="section"
+      style="background:#f4f7f5;"
+    >
+
+      <div class="container">
+
+        <div id="adminStats"></div>
+
+        <div
+          id="adminAspirasi"
+          style="margin-top:25px;"
+        >
+          ⏳ Memuat data aspirasi...
+        </div>
+
+      </div>
+
+    </section>
+  `;
 
 
-  <!-- =====================================================
-       FOOTER
-  ====================================================== -->
-
-  <footer>
-
-    <div class="container footer-inner">
-
-      <span>
-        © 2026 BPD Desa Kendalserut. All rights reserved.
-      </span>
-
-      <span>
-        ♥ Bersama Membangun Desa yang Maju dan Sejahtera
-      </span>
-
-    </div>
-
-  </footer>
+  const {
+    data: {
+      user
+    }
+  } = await supabase.auth.getUser();
 
 
-  <!-- =====================================================
-       MENU MOBILE
-  ====================================================== -->
+  const adminUser =
+    document.getElementById("adminUser");
 
-  <script>
 
-    const toggle = document.querySelector(".menu-toggle");
-    const nav = document.querySelector(".main-nav");
+  if (adminUser) {
 
-    if (toggle && nav) {
+    adminUser.textContent =
+      user?.email || "Administrator";
 
-      toggle.addEventListener("click", () => {
+  }
 
-        nav.classList.toggle("open");
 
+  const dashboardLogout =
+    document.getElementById("dashboardLogout");
+
+
+  if (dashboardLogout) {
+
+    dashboardLogout.addEventListener(
+      "click",
+      logoutAdmin
+    );
+
+  }
+
+
+  if (logoutBtn) {
+    logoutBtn.classList.remove("hidden");
+  }
+
+
+  await loadAdminAspirasi();
+
+}
+
+
+// ============================================================
+// 9. LOAD ASPIRASI ADMIN
+// ============================================================
+
+async function loadAdminAspirasi() {
+
+  const container =
+    document.getElementById("adminAspirasi");
+
+  const stats =
+    document.getElementById("adminStats");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  try {
+
+    const { data, error } = await supabase
+      .from("aspirasi")
+      .select("*")
+      .order("created_at", {
+        ascending: false
       });
+
+
+    if (error) {
+
+      console.error(error);
+
+      container.innerHTML = `
+        <div class="result">
+          ❌ Tidak dapat mengambil data aspirasi.
+          <br><br>
+          ${escapeHTML(error.message)}
+        </div>
+      `;
+
+      return;
+    }
+
+
+    const aspirasi =
+      data || [];
+
+
+    // ========================================================
+    // STATISTIK
+    // ========================================================
+
+    const total =
+      aspirasi.length;
+
+    const menunggu =
+      aspirasi.filter(
+        item =>
+          item.status === "Menunggu"
+      ).length;
+
+    const diproses =
+      aspirasi.filter(
+        item =>
+          item.status === "Diproses"
+      ).length;
+
+    const selesai =
+      aspirasi.filter(
+        item =>
+          item.status === "Selesai"
+      ).length;
+
+
+    if (stats) {
+
+      stats.innerHTML = `
+        <div
+          style="
+            display:grid;
+            grid-template-columns:repeat(4,1fr);
+            gap:15px;
+          "
+        >
+
+          <div class="result">
+            <strong>Total Aspirasi</strong>
+            <h2>${total}</h2>
+          </div>
+
+          <div class="result">
+            <strong>Menunggu</strong>
+            <h2>${menunggu}</h2>
+          </div>
+
+          <div class="result">
+            <strong>Diproses</strong>
+            <h2>${diproses}</h2>
+          </div>
+
+          <div class="result">
+            <strong>Selesai</strong>
+            <h2>${selesai}</h2>
+          </div>
+
+        </div>
+      `;
 
     }
 
 
-    document.querySelectorAll(".main-nav a").forEach((link) => {
+    if (aspirasi.length === 0) {
 
-      link.addEventListener("click", () => {
+      container.innerHTML = `
+        <div class="result">
+          Belum ada aspirasi masuk.
+        </div>
+      `;
 
-        if (nav) {
-          nav.classList.remove("open");
-        }
+      return;
+    }
 
-      });
+
+    // ========================================================
+    // TABEL ASPIRASI
+    // ========================================================
+
+    let html = `
+      <div
+        style="
+          background:white;
+          border-radius:15px;
+          padding:20px;
+          overflow-x:auto;
+        "
+      >
+
+        <h3>
+          📋 Daftar Aspirasi Masyarakat
+        </h3>
+
+        <table
+          style="
+            width:100%;
+            border-collapse:collapse;
+            min-width:1000px;
+          "
+        >
+
+          <thead>
+
+            <tr
+              style="
+                text-align:left;
+                border-bottom:2px solid #dce5df;
+              "
+            >
+
+              <th style="padding:12px;">
+                Tiket
+              </th>
+
+              <th style="padding:12px;">
+                Pengirim
+              </th>
+
+              <th style="padding:12px;">
+                Wilayah
+              </th>
+
+              <th style="padding:12px;">
+                Kategori
+              </th>
+
+              <th style="padding:12px;">
+                Aspirasi
+              </th>
+
+              <th style="padding:12px;">
+                Status
+              </th>
+
+              <th style="padding:12px;">
+                Tanggapan
+              </th>
+
+              <th style="padding:12px;">
+                Aksi
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+    `;
+
+
+    aspirasi.forEach(item => {
+
+      const status =
+        item.status || "Menunggu";
+
+
+      html += `
+        <tr
+          style="
+            border-bottom:1px solid #e5ebe7;
+            vertical-align:top;
+          "
+        >
+
+          <td style="padding:12px;">
+            <strong>
+              ${escapeHTML(item.nomor_tiket)}
+            </strong>
+          </td>
+
+          <td style="padding:12px;">
+            ${escapeHTML(item.nama || "Anonim")}
+            <br>
+            <small>
+              ${escapeHTML(item.whatsapp || "")}
+            </small>
+          </td>
+
+          <td style="padding:12px;">
+            ${escapeHTML(item.dusun || "")}
+            <br>
+            ${escapeHTML(item.rt_rw || "")}
+          </td>
+
+          <td style="padding:12px;">
+            ${escapeHTML(item.kategori || "")}
+          </td>
+
+          <td
+            style="
+              padding:12px;
+              max-width:300px;
+            "
+          >
+            ${escapeHTML(item.isi_aspirasi || "")}
+          </td>
+
+          <td style="padding:12px;">
+
+            <select
+              class="status-select"
+              data-id="${escapeHTML(item.id)}"
+            >
+
+              <option
+                value="Menunggu"
+                ${status === "Menunggu" ? "selected" : ""}
+              >
+                Menunggu
+              </option>
+
+              <option
+                value="Diproses"
+                ${status === "Diproses" ? "selected" : ""}
+              >
+                Diproses
+              </option>
+
+              <option
+                value="Selesai"
+                ${status === "Selesai" ? "selected" : ""}
+              >
+                Selesai
+              </option>
+
+              <option
+                value="Ditolak"
+                ${status === "Ditolak" ? "selected" : ""}
+              >
+                Ditolak
+              </option>
+
+            </select>
+
+          </td>
+
+          <td style="padding:12px;">
+
+            <textarea
+              class="tanggapan-input"
+              data-id="${escapeHTML(item.id)}"
+              rows="4"
+              style="
+                width:250px;
+                padding:8px;
+                border:1px solid #d7e0da;
+                border-radius:8px;
+              "
+            >${escapeHTML(item.tanggapan || "")}</textarea>
+
+          </td>
+
+          <td style="padding:12px;">
+
+            <button
+              class="save-aspirasi-btn btn btn-primary"
+              data-id="${escapeHTML(item.id)}"
+              type="button"
+            >
+              💾 Simpan
+            </button>
+
+          </td>
+
+        </tr>
+      `;
 
     });
 
-  </script>
+
+    html += `
+          </tbody>
+
+        </table>
+
+      </div>
+    `;
 
 
-  <!-- =====================================================
-       APP.JS
-       
-       JANGAN DIHAPUS.
-       File ini menangani:
-       - Supabase
-       - Kirim aspirasi
-       - Nomor tiket
-       - Cek aspirasi
-       - Login admin
-       - Dashboard admin
-       - Logout
-       - Berita
-  ====================================================== -->
-
-  <script
-    type="module"
-    src="./app.js"
-  ></script>
+    container.innerHTML = html;
 
 
-</body>
-</html>
+    // ========================================================
+    // PASANG EVENT TOMBOL SIMPAN
+    // ========================================================
+
+    document
+      .querySelectorAll(".save-aspirasi-btn")
+      .forEach(button => {
+
+        button.addEventListener(
+          "click",
+          async function () {
+
+            const id =
+              this.dataset.id;
+
+            const statusSelect =
+              document.querySelector(
+                `.status-select[data-id="${id}"]`
+              );
+
+            const tanggapanInput =
+              document.querySelector(
+                `.tanggapan-input[data-id="${id}"]`
+              );
+
+
+            const status =
+              statusSelect?.value || "Menunggu";
+
+            const tanggapan =
+              tanggapanInput?.value.trim() || "";
+
+
+            this.disabled = true;
+
+            this.textContent =
+              "⏳ Menyimpan...";
+
+
+            const {
+              error
+            } = await supabase
+              .from("aspirasi")
+              .update({
+                status: status,
+                tanggapan: tanggapan,
+                updated_at: new Date().toISOString()
+              })
+              .eq("id", id);
+
+
+            if (error) {
+
+              console.error(error);
+
+              alert(
+                "Gagal menyimpan: " +
+                error.message
+              );
+
+            } else {
+
+              alert(
+                "✅ Aspirasi berhasil diperbarui."
+              );
+
+            }
+
+
+            this.disabled = false;
+
+            this.textContent =
+              "💾 Simpan";
+
+
+            await loadAdminAspirasi();
+
+          }
+
+        );
+
+      });
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    container.innerHTML = `
+      <div class="result">
+        ❌ Terjadi kesalahan saat mengambil data.
+      </div>
+    `;
+
+  }
+
+}
+
+
+// ============================================================
+// 10. LOGOUT ADMIN
+// ============================================================
+
+async function logoutAdmin() {
+
+  await supabase.auth.signOut();
+
+
+  if (adminDash) {
+
+    adminDash.innerHTML = "";
+
+    adminDash.classList.add("hidden");
+
+  }
+
+
+  if (logoutBtn) {
+
+    logoutBtn.classList.add("hidden");
+
+  }
+
+
+  if (loginMsg) {
+
+    loginMsg.innerHTML =
+      "Anda telah logout.";
+
+  }
+
+
+  window.location.hash =
+    "login-admin";
+
+}
+
+
+if (logoutBtn) {
+
+  logoutBtn.addEventListener(
+    "click",
+    logoutAdmin
+  );
+
+}
+
+
+// ============================================================
+// 11. CEK SESSION SAAT HALAMAN DIBUKA
+// ============================================================
+
+async function checkExistingSession() {
+
+  try {
+
+    const {
+      data
+    } = await supabase.auth.getSession();
+
+
+    if (data?.session) {
+
+      await showAdminDashboard();
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Session error:",
+      error
+    );
+
+  }
+
+}
+
+
+checkExistingSession();
+
+
+// ============================================================
+// 12. PERUBAHAN LOGIN / LOGOUT SUPABASE
+// ============================================================
+
+supabase.auth.onAuthStateChange(
+  async (event, session) => {
+
+    if (event === "SIGNED_IN" && session) {
+
+      await showAdminDashboard();
+
+    }
+
+
+    if (event === "SIGNED_OUT") {
+
+      if (adminDash) {
+
+        adminDash.innerHTML = "";
+
+        adminDash.classList.add("hidden");
+
+      }
+
+      if (logoutBtn) {
+
+        logoutBtn.classList.add("hidden");
+
+      }
+
+    }
+
+  }
+);
+
+
+// ============================================================
+// 13. BERITA
+// Untuk sementara menampilkan informasi statis.
+// Nanti bisa kita buat tabel berita di Supabase.
+// ============================================================
+
+function loadNews() {
+
+  if (!newsList) {
+    return;
+  }
+
+
+  newsList.innerHTML = `
+    <article>
+
+      <h3>
+        Selamat Datang di Website BPD Desa Kendalserut
+      </h3>
+
+      <p>
+        Website ini menjadi media informasi,
+        komunikasi, dan penyampaian aspirasi
+        masyarakat Desa Kendalserut kepada BPD.
+      </p>
+
+    </article>
+
+    <article>
+
+      <h3>
+        Layanan Aspirasi Masyarakat
+      </h3>
+
+      <p>
+        Masyarakat dapat menyampaikan aspirasi,
+        saran, dan masukan secara online melalui
+        layanan aspirasi.
+      </p>
+
+    </article>
+
+    <article>
+
+      <h3>
+        Transparansi Aspirasi
+      </h3>
+
+      <p>
+        Setiap aspirasi yang masuk mendapatkan
+        nomor tiket sehingga masyarakat dapat
+        memantau perkembangannya.
+      </p>
+
+    </article>
+  `;
+
+}
+
+
+loadNews();
+
+
+// ============================================================
+// 14. ISI OTOMATIS NOMOR TIKET TERAKHIR
+// ============================================================
+
+const lastTicket =
+  localStorage.getItem(
+    "lastAspirasiTicket"
+  );
+
+
+if (lastTicket) {
+
+  const ticketInput =
+    document.getElementById("ticket");
+
+
+  if (ticketInput) {
+
+    ticketInput.placeholder =
+      `Tiket terakhir: ${lastTicket}`;
+
+  }
+
+}
+
+
+// ============================================================
+// SELESAI
+// ============================================================
+
+console.log(
+  "BPD Desa Kendalserut app.js berhasil dimuat."
+);
