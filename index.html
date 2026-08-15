@@ -1,759 +1,485 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Website resmi BPD Desa Kendalserut, Kecamatan Pangkah, Kabupaten Tegal. Wadah informasi dan aspirasi masyarakat.">
+<meta name="theme-color" content="#0b5d3b">
+<title>BPD Desa Kendalserut — Wadah Informasi dan Aspirasi Masyarakat</title>
+<link rel="stylesheet" href="./style.css">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+<style>
+/* =========================================================
+   KOMPONEN YANG DIBUTUHKAN app.js
+   ========================================================= */
+.hidden{display:none!important}
 
-  <meta
-    name="description"
-    content="Website resmi BPD Desa Kendalserut, Kecamatan Pangkah, Kabupaten Tegal. Wadah informasi dan aspirasi masyarakat."
-  >
+/* Login Admin */
+.login-modal{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(7,30,20,.72);
+  backdrop-filter:blur(5px);
+}
+.login-modal.hidden{display:none!important}
+.login-box{
+  position:relative;
+  width:100%;
+  max-width:440px;
+  background:#fff;
+  border-radius:24px;
+  padding:32px;
+  box-sizing:border-box;
+  box-shadow:0 25px 80px rgba(0,0,0,.28);
+}
+.login-close{
+  position:absolute;
+  right:15px;
+  top:15px;
+  width:38px;
+  height:38px;
+  border:0;
+  border-radius:50%;
+  cursor:pointer;
+  background:#eef3ef;
+  color:#245c45;
+  font-size:17px;
+  font-weight:700;
+}
+.login-logo{text-align:center;margin-bottom:16px}
+.login-logo img{
+  width:78px;height:78px;object-fit:contain;border-radius:50%;
+}
+.login-box h2{margin:5px 0 8px}
+.login-box .login-desc{color:#6d7972;line-height:1.6;margin:0 0 22px}
+.login-field{margin-bottom:15px}
+.login-field label{display:block;font-weight:700;font-size:14px;margin-bottom:7px;color:#29483a}
+.login-field input{
+  width:100%;
+  box-sizing:border-box;
+  padding:12px 13px;
+  border:1px solid #d7e0da;
+  border-radius:10px;
+  font:inherit;
+}
+.login-submit{
+  width:100%;
+  border:0;
+  cursor:pointer;
+}
+#loginMsg{
+  margin-top:13px;
+  min-height:20px;
+  font-size:14px;
+  color:#9a4141;
+  line-height:1.5;
+}
+body.login-open{overflow:hidden}
 
-  <meta name="theme-color" content="#0b5d3b">
-
-  <title>
-    BPD Desa Kendalserut — Wadah Informasi dan Aspirasi Masyarakat
-  </title>
-
-  <!-- CSS utama -->
-  <link rel="stylesheet" href="./style.css">
+/* Form aspirasi/cek yang dibutuhkan app.js */
+.service-form{
+  max-width:850px;
+  margin:24px auto 0;
+  padding:26px;
+  background:#fff;
+  border:1px solid #e4ebe7;
+  border-radius:20px;
+  box-shadow:0 7px 24px rgba(0,0,0,.045);
+}
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:15px;
+}
+.form-field{display:flex;flex-direction:column;gap:7px}
+.form-field.full{grid-column:1/-1}
+.form-field label{font-size:14px;font-weight:700;color:#29483a}
+.form-field input,.form-field select,.form-field textarea{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid #d7e0da;
+  border-radius:10px;
+  padding:12px 13px;
+  background:#fff;
+  font:inherit;
+}
+.form-field textarea{min-height:130px;resize:vertical}
+.form-check{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  color:#5e6b64;
+}
+.form-check input{width:auto}
+.form-message{
+  margin-top:15px;
+  padding:12px 14px;
+  border-radius:10px;
+  background:#f2f7f3;
+  color:#28563f;
+  line-height:1.6;
+}
+#checkResult{margin-top:16px}
+.result{
+  padding:16px;
+  border-radius:12px;
+  background:#f5f8f6;
+  border:1px solid #e1e9e4;
+  line-height:1.55;
+}
+.status{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:999px;
+  background:#eaf3ed;
+  color:#276446;
+  font-weight:800;
+}
+#newsList{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
+  margin-top:24px;
+}
+#newsList article{
+  background:#fff;
+  border:1px solid #e4ebe7;
+  border-radius:16px;
+  padding:20px;
+}
+@media(max-width:760px){
+  .form-grid{grid-template-columns:1fr}
+  .form-field.full{grid-column:auto}
+  .service-form,.login-box{padding:20px}
+  #newsList{grid-template-columns:1fr}
+}
+</style>
 </head>
 
 <body>
 
-  <!-- =========================================================
-       TOP BAR
-  ========================================================== -->
-  <div class="topbar">
-    <div class="container topbar-inner">
+<div class="topbar">
+  <div class="container topbar-inner">
+    <span>📍 Desa Kendalserut, Kec. Pangkah, Kab. Tegal, Jawa Tengah</span>
+    <div class="top-contact">
+      <span>✉️ bpd.kendalserut@gmail.com</span>
+      <span>☎️ (0283) 1234567</span>
+    </div>
+  </div>
+</div>
 
-      <span>
-        📍 Desa Kendalserut, Kec. Pangkah, Kab. Tegal, Jawa Tengah
-      </span>
-
-      <div class="top-contact">
-        <span>
-          ✉️ bpd.kendalserut@gmail.com
-        </span>
-
-        <span>
-          ☎️ (0283) 1234567
-        </span>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="#beranda" aria-label="BPD Desa Kendalserut">
+      <img src="./logo-bpd-kendalserut.jpg" alt="Logo BPD Desa Kendalserut" loading="eager">
+      <div>
+        <div class="brand-title">BPD DESA KENDALSERUT</div>
+        <div class="brand-subtitle">Badan Permusyawaratan Desa</div>
       </div>
+    </a>
 
+    <button class="menu-toggle" id="navBtn" type="button" aria-label="Buka menu" aria-expanded="false">☰</button>
+
+    <nav class="main-nav" id="nav" aria-label="Navigasi utama">
+      <a class="active" href="#beranda">Beranda</a>
+      <a href="#profil">Profil BPD</a>
+      <a href="#struktur">Struktur BPD</a>
+      <a href="#aspirasi">Aspirasi</a>
+      <a href="#cek">Cek Aspirasi</a>
+      <a href="#kontak">Kontak</a>
+      <!-- PENTING: tombol ini membuka popup, bukan href #admin -->
+      <button class="admin-btn" id="openLoginBtn" type="button">♟ Login Admin</button>
+    </nav>
+  </div>
+</header>
+
+<main id="beranda">
+
+<section class="hero"
+  style="background-image:url('./background-header.jpg');background-size:cover;background-position:center center;background-repeat:no-repeat;">
+  <div class="hero-overlay"></div>
+  <div class="container hero-content">
+    <span class="eyebrow">BADAN PERMUSYAWARATAN DESA</span>
+    <h1>BPD DESA<br>KENDALSERUT</h1>
+    <p class="hero-lead">Wadah Informasi dan Aspirasi Masyarakat</p>
+    <div class="gold-line"></div>
+    <p class="hero-copy">Mari sampaikan aspirasi, saran, dan masukan<br class="desktop-only"> untuk kemajuan Desa Kendalserut.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#aspirasi">📣 Sampaikan Aspirasi</a>
+      <a class="btn btn-light" href="#cek">🎫 Cek Aspirasi</a>
+    </div>
+  </div>
+</section>
+
+<section class="quick-section">
+  <div class="container quick-grid">
+    <a class="info-card" href="#aspirasi">
+      <span class="icon-circle">📣</span>
+      <div><h3>Sampaikan Aspirasi</h3><p>Sampaikan aspirasi, saran, dan masukan Anda untuk kemajuan desa.</p></div>
+      <span class="arrow">→</span>
+    </a>
+    <a class="info-card" href="#cek">
+      <span class="icon-circle">🔎</span>
+      <div><h3>Lacak Aspirasi</h3><p>Pantau status aspirasi Anda secara mudah dan transparan.</p></div>
+      <span class="arrow">→</span>
+    </a>
+    <a class="info-card" href="#profil">
+      <span class="icon-circle">🏛</span>
+      <div><h3>Informasi BPD</h3><p>Dapatkan informasi seputar kegiatan dan program BPD Desa Kendalserut.</p></div>
+      <span class="arrow">→</span>
+    </a>
+    <div class="village-card">
+      <h3>Tentang Desa Kendalserut</h3><div class="village-line"></div>
+      <p>📍 Desa Kendalserut</p><p>⌖ Kecamatan Pangkah</p><p>◉ Kabupaten Tegal</p><p>★ Jawa Tengah</p>
+    </div>
+  </div>
+</section>
+
+<section id="profil" class="section">
+  <div class="container split">
+    <div>
+      <span class="section-label">PROFIL</span>
+      <h2>Sekilas Tentang BPD</h2>
+      <div class="small-gold-line"></div>
+      <p>Badan Permusyawaratan Desa (BPD) merupakan lembaga yang melaksanakan fungsi pemerintahan yang anggotanya merupakan wakil dari penduduk desa berdasarkan keterwakilan wilayah dan ditetapkan secara demokratis.</p>
+      <p>BPD berperan menampung dan menyalurkan aspirasi masyarakat serta menjalankan fungsi pengawasan demi terwujudnya tata kelola pemerintahan desa yang baik.</p>
+    </div>
+    <div class="quote-card">
+      <span class="quote-mark">“</span>
+      <p>Bersama BPD, membangun desa dengan aspirasi, partisipasi, dan gotong royong.</p>
+    </div>
+  </div>
+</section>
+
+<section id="struktur" class="section section-soft">
+  <div class="container">
+    <span class="section-label">KELEMBAGAAN</span>
+    <h2>Struktur BPD Desa Kendalserut</h2>
+    <div class="small-gold-line"></div>
+    <div class="structure-grid">
+      <div class="member"><strong>Siti Muslicha, Amd</strong><span>Ketua</span></div>
+      <div class="member"><strong>Akhmad Suswanto, S.Pd.SD</strong><span>Wakil Ketua</span></div>
+      <div class="member"><strong>Sunjoyo, SM</strong><span>Sekretaris</span></div>
+      <div class="member"><strong>Farkhatun</strong><span>Ketua Bidang Pemerintahan dan Pembinaan Masyarakat</span></div>
+      <div class="member"><strong>Yasin Nurjati Kusumo</strong><span>Anggota Bidang Pemerintahan dan Pembinaan Masyarakat</span></div>
+      <div class="member"><strong>Mohamad Nur Ikhwan</strong><span>Ketua Bidang Pembangunan dan Pemberdayaan Masyarakat</span></div>
+      <div class="member"><strong>Udi Pamungkas</strong><span>Anggota Bidang Pembangunan dan Pemberdayaan Masyarakat</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="aspirasi" class="section">
+  <div class="container action-panel">
+    <div>
+      <span class="section-label">LAYANAN MASYARAKAT</span>
+      <h2>Sampaikan Aspirasi Anda</h2>
+      <p>Gunakan layanan aspirasi untuk menyampaikan saran, masukan, atau kebutuhan masyarakat kepada BPD Desa Kendalserut.</p>
     </div>
   </div>
 
+  <form id="aspForm" class="service-form">
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="nama">Nama</label>
+        <input id="nama" name="nama" type="text" placeholder="Nama Anda">
+      </div>
+      <div class="form-field">
+        <label for="wilayah">Dusun / Wilayah</label>
+        <input id="wilayah" name="wilayah" type="text" placeholder="Contoh: RT 02 / RW 05">
+      </div>
+      <div class="form-field">
+        <label for="whatsapp">Nomor WhatsApp</label>
+        <input id="whatsapp" name="whatsapp" type="text" placeholder="08xxxxxxxxxx">
+      </div>
+      <div class="form-field">
+        <label for="kategori">Kategori Aspirasi</label>
+        <select id="kategori" name="kategori" required>
+          <option value="">Pilih kategori</option>
+          <option value="Pemerintahan">Pemerintahan</option>
+          <option value="Pembangunan">Pembangunan</option>
+          <option value="Pemberdayaan Masyarakat">Pemberdayaan Masyarakat</option>
+          <option value="Infrastruktur">Infrastruktur</option>
+          <option value="Sosial">Sosial</option>
+          <option value="Kesehatan">Kesehatan</option>
+          <option value="Pendidikan">Pendidikan</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </div>
+      <div class="form-field full">
+        <label for="isi">Isi Aspirasi</label>
+        <textarea id="isi" name="isi" required placeholder="Tuliskan aspirasi, saran, atau masukan Anda..."></textarea>
+      </div>
+      <div class="form-field full">
+        <label class="form-check"><input type="checkbox" name="anonim"> Kirim sebagai anonim</label>
+      </div>
+      <div class="form-field full">
+        <button class="btn btn-primary" type="submit">📣 Kirim Aspirasi</button>
+      </div>
+    </div>
+    <div id="aspMsg" class="form-message" aria-live="polite"></div>
+  </form>
+</section>
 
-  <!-- =========================================================
-       HEADER
-  ========================================================== -->
-  <header class="site-header">
+<section id="cek" class="section section-soft">
+  <div class="container action-panel">
+    <div>
+      <span class="section-label">PELACAKAN</span>
+      <h2>Cek Status Aspirasi</h2>
+      <p>Masukkan nomor tiket aspirasi untuk melihat status dan tanggapan dari BPD.</p>
+    </div>
+  </div>
 
-    <div class="container header-inner">
+  <form id="checkForm" class="service-form">
+    <div class="form-field">
+      <label for="ticket">Nomor Tiket Aspirasi</label>
+      <input id="ticket" name="ticket" type="text" required placeholder="Contoh: ASP-20260814-7220">
+    </div>
+    <br>
+    <button class="btn btn-primary" type="submit">🔎 Cek Status</button>
+    <div id="checkResult" aria-live="polite"></div>
+  </form>
+</section>
 
-      <a
-        class="brand"
-        href="#beranda"
-        aria-label="BPD Desa Kendalserut"
-      >
+<section class="section">
+  <div class="container">
+    <span class="section-label">INFORMASI TERKINI</span>
+    <h2>Berita BPD Desa Kendalserut</h2>
+    <div class="small-gold-line"></div>
+    <div id="newsList">
+      <article><h3>Informasi sedang disiapkan</h3><p>Berita BPD akan tampil di sini.</p></article>
+    </div>
+  </div>
+</section>
 
-        <!--
-          LOGO:
-          File logo berada di ROOT repository.
-          Jangan menggunakan assets/ karena folder tersebut tidak ada.
-        -->
-        <img
-          src="./logo-bpd-kendalserut.jpg"
-          alt="Logo BPD Desa Kendalserut"
-          loading="eager"
-        >
+<section id="kontak" class="contact-section">
+  <div class="container contact-grid">
+    <div>
+      <span class="section-label light-label">KONTAK</span>
+      <h2>Hubungi BPD Desa Kendalserut</h2>
+      <p>Untuk informasi dan komunikasi kelembagaan BPD, silakan gunakan kanal kontak yang tersedia.</p>
+    </div>
+    <div class="contact-box">
+      <p>✉️ <strong>bpd.kendalserut@gmail.com</strong></p>
+      <p>☎️ <strong>(0283) 1234567</strong></p>
+      <p>📍 Desa Kendalserut, Kecamatan Pangkah, Kabupaten Tegal</p>
+    </div>
+  </div>
+</section>
 
-        <div>
+<!-- =========================================================
+     DASHBOARD ADMIN
+     app.js akan mengisi elemen ini setelah login.
+     ========================================================= -->
+<section id="adminDash" class="hidden"></section>
 
-          <div class="brand-title">
-            BPD DESA KENDALSERUT
-          </div>
+</main>
 
-          <div class="brand-subtitle">
-            Badan Permusyawaratan Desa
-          </div>
+<footer>
+  <div class="container footer-inner">
+    <span>© 2026 BPD Desa Kendalserut. All rights reserved.</span>
+    <span>♥ Bersama Membangun Desa yang Maju dan Sejahtera</span>
+  </div>
+</footer>
 
-        </div>
+<!-- =========================================================
+     POPUP LOGIN ADMIN
+     ID HARUS SAMA DENGAN YANG DIPANGGIL app.js
+     ========================================================= -->
+<div id="loginModal" class="login-modal hidden" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <div class="login-box">
+    <button id="closeLoginBtn" class="login-close" type="button" aria-label="Tutup">✕</button>
 
-      </a>
-
-
-      <!-- Tombol menu mobile -->
-      <button
-        class="menu-toggle"
-        type="button"
-        aria-label="Buka menu"
-        aria-expanded="false"
-      >
-        ☰
-      </button>
-
-
-      <!-- Navigasi -->
-      <nav
-        class="main-nav"
-        aria-label="Navigasi utama"
-      >
-
-        <a
-          class="active"
-          href="#beranda"
-        >
-          Beranda
-        </a>
-
-        <a href="#profil">
-          Profil BPD
-        </a>
-
-        <a href="#struktur">
-          Struktur BPD
-        </a>
-
-        <a href="#aspirasi">
-          Aspirasi
-        </a>
-
-        <a href="#cek">
-          Cek Aspirasi
-        </a>
-
-        <a href="#kontak">
-          Kontak
-        </a>
-
-        <a
-          class="admin-btn"
-          href="#admin"
-        >
-          ♟ Login Admin
-        </a>
-
-      </nav>
-
+    <div class="login-logo">
+      <img src="./logo-bpd-kendalserut.jpg" alt="Logo BPD Desa Kendalserut">
     </div>
 
-  </header>
+    <span class="section-label">ADMINISTRATOR</span>
+    <h2 id="loginTitle">Login Admin BPD</h2>
+    <p class="login-desc">Silakan masuk menggunakan akun administrator BPD Desa Kendalserut.</p>
 
-
-  <!-- =========================================================
-       MAIN CONTENT
-  ========================================================== -->
-  <main id="beranda">
-
-
-    <!-- =======================================================
-         HERO
-    ======================================================== -->
-    <section
-      class="hero"
-      style="
-        background-image: url('./background-header.jpg');
-        background-size: cover;
-        background-position: center center;
-        background-repeat: no-repeat;
-      "
-    >
-
-      <div class="hero-overlay"></div>
-
-      <div class="container hero-content">
-
-        <span class="eyebrow">
-          BADAN PERMUSYAWARATAN DESA
-        </span>
-
-        <h1>
-          BPD DESA<br>
-          KENDALSERUT
-        </h1>
-
-        <p class="hero-lead">
-          Wadah Informasi dan Aspirasi Masyarakat
-        </p>
-
-        <div class="gold-line"></div>
-
-        <p class="hero-copy">
-          Mari sampaikan aspirasi, saran, dan masukan
-          <br class="desktop-only">
-          untuk kemajuan Desa Kendalserut.
-        </p>
-
-        <div class="hero-actions">
-
-          <a
-            class="btn btn-primary"
-            href="#aspirasi"
-          >
-            📣 Sampaikan Aspirasi
-          </a>
-
-          <a
-            class="btn btn-light"
-            href="#cek"
-          >
-            🎫 Cek Aspirasi
-          </a>
-
-        </div>
-
+    <form id="loginForm">
+      <div class="login-field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" name="email" type="email" autocomplete="username" required placeholder="Email admin">
       </div>
 
-    </section>
-
-
-    <!-- =======================================================
-         QUICK INFORMATION
-    ======================================================== -->
-    <section class="quick-section">
-
-      <div class="container quick-grid">
-
-
-        <!-- Aspirasi -->
-        <a
-          class="info-card"
-          href="#aspirasi"
-        >
-
-          <span class="icon-circle">
-            📣
-          </span>
-
-          <div>
-
-            <h3>
-              Sampaikan Aspirasi
-            </h3>
-
-            <p>
-              Sampaikan aspirasi, saran, dan masukan Anda
-              untuk kemajuan desa.
-            </p>
-
-          </div>
-
-          <span class="arrow">
-            →
-          </span>
-
-        </a>
-
-
-        <!-- Lacak -->
-        <a
-          class="info-card"
-          href="#cek"
-        >
-
-          <span class="icon-circle">
-            🔎
-          </span>
-
-          <div>
-
-            <h3>
-              Lacak Aspirasi
-            </h3>
-
-            <p>
-              Pantau status aspirasi Anda secara mudah
-              dan transparan.
-            </p>
-
-          </div>
-
-          <span class="arrow">
-            →
-          </span>
-
-        </a>
-
-
-        <!-- Informasi BPD -->
-        <a
-          class="info-card"
-          href="#profil"
-        >
-
-          <span class="icon-circle">
-            🏛
-          </span>
-
-          <div>
-
-            <h3>
-              Informasi BPD
-            </h3>
-
-            <p>
-              Dapatkan informasi seputar kegiatan dan
-              program BPD Desa Kendalserut.
-            </p>
-
-          </div>
-
-          <span class="arrow">
-            →
-          </span>
-
-        </a>
-
-
-        <!-- Informasi Desa -->
-        <div class="village-card">
-
-          <h3>
-            Tentang Desa Kendalserut
-          </h3>
-
-          <div class="village-line"></div>
-
-          <p>
-            📍 Desa Kendalserut
-          </p>
-
-          <p>
-            ⌖ Kecamatan Pangkah
-          </p>
-
-          <p>
-            ◉ Kabupaten Tegal
-          </p>
-
-          <p>
-            ★ Jawa Tengah
-          </p>
-
-        </div>
-
+      <div class="login-field">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required placeholder="Password">
       </div>
 
-    </section>
-
-
-    <!-- =======================================================
-         PROFIL BPD
-    ======================================================== -->
-    <section
-      id="profil"
-      class="section"
-    >
-
-      <div class="container split">
-
-        <div>
-
-          <span class="section-label">
-            PROFIL
-          </span>
-
-          <h2>
-            Sekilas Tentang BPD
-          </h2>
-
-          <div class="small-gold-line"></div>
-
-          <p>
-            Badan Permusyawaratan Desa (BPD) merupakan lembaga
-            yang melaksanakan fungsi pemerintahan yang anggotanya
-            merupakan wakil dari penduduk desa berdasarkan
-            keterwakilan wilayah dan ditetapkan secara demokratis.
-          </p>
-
-          <p>
-            BPD berperan menampung dan menyalurkan aspirasi
-            masyarakat serta menjalankan fungsi pengawasan demi
-            terwujudnya tata kelola pemerintahan desa yang baik.
-          </p>
-
-        </div>
-
-
-        <div class="quote-card">
-
-          <span class="quote-mark">
-            “
-          </span>
-
-          <p>
-            Bersama BPD, membangun desa dengan aspirasi,
-            partisipasi, dan gotong royong.
-          </p>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =======================================================
-         STRUKTUR BPD
-    ======================================================== -->
-    <section
-      id="struktur"
-      class="section section-soft"
-    >
-
-      <div class="container">
-
-        <span class="section-label">
-          KELEMBAGAAN
-        </span>
-
-        <h2>
-          Struktur BPD Desa Kendalserut
-        </h2>
-
-        <div class="small-gold-line"></div>
-
-
-        <div class="structure-grid">
-
-          <div class="member">
-            <strong>
-              Siti Muslicha, Amd
-            </strong>
-
-            <span>
-              Ketua
-            </span>
-          </div>
-
-
-          <div class="member">
-            <strong>
-              Akhmad Suswanto, S.Pd.SD
-            </strong>
-
-            <span>
-              Wakil Ketua
-            </span>
-          </div>
-
-
-          <div class="member">
-            <strong>
-              Sunjoyo, SM
-            </strong>
-
-            <span>
-              Sekretaris
-            </span>
-          </div>
-
-
-          <div class="member">
-            <strong>
-              Farkhatun
-            </strong>
-
-            <span>
-              Ketua Bidang Pemerintahan dan Pembinaan Masyarakat
-            </span>
-          </div>
-
-
-          <div class="member">
-            <strong>
-              Yasin Nurjati Kusumo
-            </strong>
-
-            <span>
-              Anggota Bidang Pemerintahan dan Pembinaan Masyarakat
-            </span>
-          </div>
-
-
-          <div class="member">
-            <strong>
-              Mohamad Nur Ikhwan
-            </strong>
-
-            <span>
-              Ketua Bidang Pembangunan dan Pemberdayaan Masyarakat
-            </span>
-          </div>
-
-
-          <div class="member">
-            <strong>
-              Udi Pamungkas
-            </strong>
-
-            <span>
-              Anggota Bidang Pembangunan dan Pemberdayaan Masyarakat
-            </span>
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =======================================================
-         ASPIRASI
-    ======================================================== -->
-    <section
-      id="aspirasi"
-      class="section"
-    >
-
-      <div class="container action-panel">
-
-        <div>
-
-          <span class="section-label">
-            LAYANAN MASYARAKAT
-          </span>
-
-          <h2>
-            Sampaikan Aspirasi Anda
-          </h2>
-
-          <p>
-            Gunakan layanan aspirasi untuk menyampaikan saran,
-            masukan, atau kebutuhan masyarakat kepada BPD
-            Desa Kendalserut.
-          </p>
-
-        </div>
-
-
-        <a
-          class="btn btn-primary"
-          href="#aspirasi-form"
-        >
-          Kirim Aspirasi →
-        </a>
-
-      </div>
-
-
-      <div
-        id="aspirasi-form"
-        class="container service-note"
-      >
-
-        <p>
-          <strong>Catatan:</strong>
-          bagian formulir aspirasi dan koneksi Supabase
-          tetap menggunakan <code>app.js</code> yang sudah
-          ada pada project.
-        </p>
-
-      </div>
-
-    </section>
-
-
-    <!-- =======================================================
-         CEK ASPIRASI
-    ======================================================== -->
-    <section
-      id="cek"
-      class="section section-soft"
-    >
-
-      <div class="container action-panel">
-
-        <div>
-
-          <span class="section-label">
-            PELACAKAN
-          </span>
-
-          <h2>
-            Cek Status Aspirasi
-          </h2>
-
-          <p>
-            Masukkan nomor tiket aspirasi untuk melihat
-            status dan tanggapan dari BPD.
-          </p>
-
-        </div>
-
-
-        <a
-          class="btn btn-primary"
-          href="#cek-form"
-        >
-          Cek Nomor Tiket →
-        </a>
-
-      </div>
-
-
-      <div
-        id="cek-form"
-        class="container service-note"
-      >
-
-        <p>
-          Contoh nomor tiket:
-          <strong>
-            ASP-20260814-7220
-          </strong>
-        </p>
-
-      </div>
-
-    </section>
-
-
-    <!-- =======================================================
-         KONTAK
-    ======================================================== -->
-    <section
-      id="kontak"
-      class="contact-section"
-    >
-
-      <div class="container contact-grid">
-
-        <div>
-
-          <span class="section-label light-label">
-            KONTAK
-          </span>
-
-          <h2>
-            Hubungi BPD Desa Kendalserut
-          </h2>
-
-          <p>
-            Untuk informasi dan komunikasi kelembagaan BPD,
-            silakan gunakan kanal kontak yang tersedia.
-          </p>
-
-        </div>
-
-
-        <div class="contact-box">
-
-          <p>
-            ✉️
-            <strong>
-              bpd.kendalserut@gmail.com
-            </strong>
-          </p>
-
-          <p>
-            ☎️
-            <strong>
-              (0283) 1234567
-            </strong>
-          </p>
-
-          <p>
-            📍 Desa Kendalserut,
-            Kecamatan Pangkah,
-            Kabupaten Tegal
-          </p>
-
-        </div>
-
-      </div>
-
-    </section>
-
-  </main>
-
-
-  <!-- =========================================================
-       FOOTER
-  ========================================================== -->
-  <footer id="admin">
-
-    <div class="container footer-inner">
-
-      <span>
-        © 2026 BPD Desa Kendalserut. All rights reserved.
-      </span>
-
-      <span>
-        ♥ Bersama Membangun Desa yang Maju dan Sejahtera
-      </span>
-
-    </div>
-
-  </footer>
-
-
-  <!-- =========================================================
-       MENU MOBILE
-  ========================================================== -->
-  <script>
-    const toggle = document.querySelector('.menu-toggle');
-    const nav = document.querySelector('.main-nav');
-
-    if (toggle && nav) {
-
-      toggle.addEventListener('click', () => {
-
-        const isOpen = nav.classList.toggle('open');
-
-        toggle.setAttribute(
-          'aria-expanded',
-          isOpen ? 'true' : 'false'
-        );
-
-      });
-
-    }
-
-
-    document.querySelectorAll('.main-nav a').forEach((link) => {
-
-      link.addEventListener('click', () => {
-
-        if (nav) {
-          nav.classList.remove('open');
-        }
-
-        if (toggle) {
-          toggle.setAttribute(
-            'aria-expanded',
-            'false'
-          );
-        }
-
-      });
-
-    });
-  </script>
-
-
-  <!-- =========================================================
-       APP.JS / SUPABASE
-       
-       PENTING:
-       app.js berada di ROOT repository.
-       Jangan menggunakan assets/app.js.
-       
-       Script ini tetap dipertahankan agar koneksi
-       Supabase dan sistem aspirasi project lama tetap berjalan.
-  ========================================================== -->
-  <script
-    type="module"
-    src="./app.js"
-  ></script>
-
+      <button class="btn btn-primary login-submit" type="submit">🔐 Masuk ke Dashboard</button>
+      <div id="loginMsg" aria-live="polite"></div>
+    </form>
+  </div>
+</div>
+
+<!-- Tombol logout dibutuhkan app.js -->
+<button id="logoutBtn" class="hidden" type="button">🚪 Logout Admin</button>
+
+<script>
+/* =========================================================
+   LOGIN POPUP
+   ========================================================= */
+const openLoginBtn = document.getElementById("openLoginBtn");
+const closeLoginBtn = document.getElementById("closeLoginBtn");
+const loginModal = document.getElementById("loginModal");
+const loginForm = document.getElementById("loginForm");
+
+function openLogin(){
+  loginModal?.classList.remove("hidden");
+  document.body.classList.add("login-open");
+  const msg=document.getElementById("loginMsg");
+  if(msg) msg.textContent="";
+  setTimeout(()=>document.getElementById("loginEmail")?.focus(),100);
+}
+
+function closeLogin(){
+  loginModal?.classList.add("hidden");
+  document.body.classList.remove("login-open");
+}
+
+openLoginBtn?.addEventListener("click",openLogin);
+closeLoginBtn?.addEventListener("click",closeLogin);
+
+loginModal?.addEventListener("click",(e)=>{
+  if(e.target===loginModal) closeLogin();
+});
+
+document.addEventListener("keydown",(e)=>{
+  if(e.key==="Escape") closeLogin();
+});
+
+/* Setelah app.js berhasil login, popup ditutup oleh event ini. */
+window.addEventListener("bpd-login-success",closeLogin);
+
+/* =========================================================
+   MENU MOBILE
+   ========================================================= */
+const toggle=document.getElementById("navBtn");
+const nav=document.getElementById("nav");
+
+toggle?.addEventListener("click",()=>{
+  const isOpen=nav?.classList.toggle("open");
+  toggle.setAttribute("aria-expanded",isOpen?"true":"false");
+});
+
+document.querySelectorAll(".main-nav a").forEach(link=>{
+  link.addEventListener("click",()=>{
+    nav?.classList.remove("open");
+    toggle?.setAttribute("aria-expanded","false");
+  });
+});
+</script>
+
+<!-- APP.JS / SUPABASE — JANGAN DIUBAH -->
+<script type="module" src="./app.js"></script>
 
 </body>
 </html>
