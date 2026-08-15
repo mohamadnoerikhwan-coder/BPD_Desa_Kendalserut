@@ -2,200 +2,758 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Website resmi BPD Desa Kendalserut, Kecamatan Pangkah, Kabupaten Tegal. Wadah informasi dan aspirasi masyarakat.">
-  <title>BPD Desa Kendalserut — Wadah Informasi dan Aspirasi Masyarakat</title>
-  <link rel="stylesheet" href="style.css">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="Website resmi BPD Desa Kendalserut, Kecamatan Pangkah, Kabupaten Tegal. Wadah informasi dan aspirasi masyarakat."
+  >
+
+  <meta name="theme-color" content="#0b5d3b">
+
+  <title>
+    BPD Desa Kendalserut — Wadah Informasi dan Aspirasi Masyarakat
+  </title>
+
+  <!-- CSS utama -->
+  <link rel="stylesheet" href="./style.css">
 </head>
+
 <body>
+
+  <!-- =========================================================
+       TOP BAR
+  ========================================================== -->
   <div class="topbar">
     <div class="container topbar-inner">
-      <span>📍 Desa Kendalserut, Kec. Pangkah, Kab. Tegal, Jawa Tengah</span>
+
+      <span>
+        📍 Desa Kendalserut, Kec. Pangkah, Kab. Tegal, Jawa Tengah
+      </span>
+
       <div class="top-contact">
-        <span>✉️ bpd.kendalserut@gmail.com</span>
-        <span>☎️ (0283) 1234567</span>
+        <span>
+          ✉️ bpd.kendalserut@gmail.com
+        </span>
+
+        <span>
+          ☎️ (0283) 1234567
+        </span>
       </div>
+
     </div>
   </div>
 
+
+  <!-- =========================================================
+       HEADER
+  ========================================================== -->
   <header class="site-header">
+
     <div class="container header-inner">
-      <a class="brand" href="#beranda" aria-label="BPD Desa Kendalserut">
-        <img src="assets/logo-bpd-kendalserut.jpg" alt="Logo BPD Desa Kendalserut">
+
+      <a
+        class="brand"
+        href="#beranda"
+        aria-label="BPD Desa Kendalserut"
+      >
+
+        <!--
+          LOGO:
+          File logo berada di ROOT repository.
+          Jangan menggunakan assets/ karena folder tersebut tidak ada.
+        -->
+        <img
+          src="./logo-bpd-kendalserut.jpg"
+          alt="Logo BPD Desa Kendalserut"
+          loading="eager"
+        >
+
         <div>
-          <div class="brand-title">BPD DESA KENDALSERUT</div>
-          <div class="brand-subtitle">Badan Permusyawaratan Desa</div>
+
+          <div class="brand-title">
+            BPD DESA KENDALSERUT
+          </div>
+
+          <div class="brand-subtitle">
+            Badan Permusyawaratan Desa
+          </div>
+
         </div>
+
       </a>
 
-      <button class="menu-toggle" type="button" aria-label="Buka menu">☰</button>
 
-      <nav class="main-nav" aria-label="Navigasi utama">
-        <a class="active" href="#beranda">Beranda</a>
-        <a href="#profil">Profil BPD</a>
-        <a href="#struktur">Struktur BPD</a>
-        <a href="#aspirasi">Aspirasi</a>
-        <a href="#cek">Cek Aspirasi</a>
-        <a href="#kontak">Kontak</a>
-        <a class="admin-btn" href="#admin">♟ Login Admin</a>
+      <!-- Tombol menu mobile -->
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-label="Buka menu"
+        aria-expanded="false"
+      >
+        ☰
+      </button>
+
+
+      <!-- Navigasi -->
+      <nav
+        class="main-nav"
+        aria-label="Navigasi utama"
+      >
+
+        <a
+          class="active"
+          href="#beranda"
+        >
+          Beranda
+        </a>
+
+        <a href="#profil">
+          Profil BPD
+        </a>
+
+        <a href="#struktur">
+          Struktur BPD
+        </a>
+
+        <a href="#aspirasi">
+          Aspirasi
+        </a>
+
+        <a href="#cek">
+          Cek Aspirasi
+        </a>
+
+        <a href="#kontak">
+          Kontak
+        </a>
+
+        <a
+          class="admin-btn"
+          href="#admin"
+        >
+          ♟ Login Admin
+        </a>
+
       </nav>
+
     </div>
+
   </header>
 
+
+  <!-- =========================================================
+       MAIN CONTENT
+  ========================================================== -->
   <main id="beranda">
-    <section class="hero">
+
+
+    <!-- =======================================================
+         HERO
+    ======================================================== -->
+    <section
+      class="hero"
+      style="
+        background-image: url('./background-header.jpg');
+        background-size: cover;
+        background-position: center center;
+        background-repeat: no-repeat;
+      "
+    >
+
       <div class="hero-overlay"></div>
+
       <div class="container hero-content">
-        <span class="eyebrow">BADAN PERMUSYAWARATAN DESA</span>
-        <h1>BPD DESA<br>KENDALSERUT</h1>
-        <p class="hero-lead">Wadah Informasi dan Aspirasi Masyarakat</p>
+
+        <span class="eyebrow">
+          BADAN PERMUSYAWARATAN DESA
+        </span>
+
+        <h1>
+          BPD DESA<br>
+          KENDALSERUT
+        </h1>
+
+        <p class="hero-lead">
+          Wadah Informasi dan Aspirasi Masyarakat
+        </p>
+
         <div class="gold-line"></div>
-        <p class="hero-copy">Mari sampaikan aspirasi, saran, dan masukan<br class="desktop-only"> untuk kemajuan Desa Kendalserut.</p>
+
+        <p class="hero-copy">
+          Mari sampaikan aspirasi, saran, dan masukan
+          <br class="desktop-only">
+          untuk kemajuan Desa Kendalserut.
+        </p>
+
         <div class="hero-actions">
-          <a class="btn btn-primary" href="#aspirasi">📣 Sampaikan Aspirasi</a>
-          <a class="btn btn-light" href="#cek">🎫 Cek Aspirasi</a>
+
+          <a
+            class="btn btn-primary"
+            href="#aspirasi"
+          >
+            📣 Sampaikan Aspirasi
+          </a>
+
+          <a
+            class="btn btn-light"
+            href="#cek"
+          >
+            🎫 Cek Aspirasi
+          </a>
+
         </div>
+
       </div>
+
     </section>
 
+
+    <!-- =======================================================
+         QUICK INFORMATION
+    ======================================================== -->
     <section class="quick-section">
+
       <div class="container quick-grid">
-        <a class="info-card" href="#aspirasi">
-          <span class="icon-circle">📣</span>
+
+
+        <!-- Aspirasi -->
+        <a
+          class="info-card"
+          href="#aspirasi"
+        >
+
+          <span class="icon-circle">
+            📣
+          </span>
+
           <div>
-            <h3>Sampaikan Aspirasi</h3>
-            <p>Sampaikan aspirasi, saran, dan masukan Anda untuk kemajuan desa.</p>
+
+            <h3>
+              Sampaikan Aspirasi
+            </h3>
+
+            <p>
+              Sampaikan aspirasi, saran, dan masukan Anda
+              untuk kemajuan desa.
+            </p>
+
           </div>
-          <span class="arrow">→</span>
+
+          <span class="arrow">
+            →
+          </span>
+
         </a>
 
-        <a class="info-card" href="#cek">
-          <span class="icon-circle">🔎</span>
+
+        <!-- Lacak -->
+        <a
+          class="info-card"
+          href="#cek"
+        >
+
+          <span class="icon-circle">
+            🔎
+          </span>
+
           <div>
-            <h3>Lacak Aspirasi</h3>
-            <p>Pantau status aspirasi Anda secara mudah dan transparan.</p>
+
+            <h3>
+              Lacak Aspirasi
+            </h3>
+
+            <p>
+              Pantau status aspirasi Anda secara mudah
+              dan transparan.
+            </p>
+
           </div>
-          <span class="arrow">→</span>
+
+          <span class="arrow">
+            →
+          </span>
+
         </a>
 
-        <a class="info-card" href="#profil">
-          <span class="icon-circle">🏛</span>
+
+        <!-- Informasi BPD -->
+        <a
+          class="info-card"
+          href="#profil"
+        >
+
+          <span class="icon-circle">
+            🏛
+          </span>
+
           <div>
-            <h3>Informasi BPD</h3>
-            <p>Dapatkan informasi seputar kegiatan dan program BPD Desa Kendalserut.</p>
+
+            <h3>
+              Informasi BPD
+            </h3>
+
+            <p>
+              Dapatkan informasi seputar kegiatan dan
+              program BPD Desa Kendalserut.
+            </p>
+
           </div>
-          <span class="arrow">→</span>
+
+          <span class="arrow">
+            →
+          </span>
+
         </a>
 
+
+        <!-- Informasi Desa -->
         <div class="village-card">
-          <h3>Tentang Desa Kendalserut</h3>
+
+          <h3>
+            Tentang Desa Kendalserut
+          </h3>
+
           <div class="village-line"></div>
-          <p>📍 Desa Kendalserut</p>
-          <p>⌖ Kecamatan Pangkah</p>
-          <p>◉ Kabupaten Tegal</p>
-          <p>★ Jawa Tengah</p>
+
+          <p>
+            📍 Desa Kendalserut
+          </p>
+
+          <p>
+            ⌖ Kecamatan Pangkah
+          </p>
+
+          <p>
+            ◉ Kabupaten Tegal
+          </p>
+
+          <p>
+            ★ Jawa Tengah
+          </p>
+
         </div>
+
       </div>
+
     </section>
 
-    <section id="profil" class="section">
+
+    <!-- =======================================================
+         PROFIL BPD
+    ======================================================== -->
+    <section
+      id="profil"
+      class="section"
+    >
+
       <div class="container split">
+
         <div>
-          <span class="section-label">PROFIL</span>
-          <h2>Sekilas Tentang BPD</h2>
+
+          <span class="section-label">
+            PROFIL
+          </span>
+
+          <h2>
+            Sekilas Tentang BPD
+          </h2>
+
           <div class="small-gold-line"></div>
-          <p>Badan Permusyawaratan Desa (BPD) merupakan lembaga yang melaksanakan fungsi pemerintahan yang anggotanya merupakan wakil dari penduduk desa berdasarkan keterwakilan wilayah dan ditetapkan secara demokratis.</p>
-          <p>BPD berperan menampung dan menyalurkan aspirasi masyarakat serta menjalankan fungsi pengawasan demi terwujudnya tata kelola pemerintahan desa yang baik.</p>
+
+          <p>
+            Badan Permusyawaratan Desa (BPD) merupakan lembaga
+            yang melaksanakan fungsi pemerintahan yang anggotanya
+            merupakan wakil dari penduduk desa berdasarkan
+            keterwakilan wilayah dan ditetapkan secara demokratis.
+          </p>
+
+          <p>
+            BPD berperan menampung dan menyalurkan aspirasi
+            masyarakat serta menjalankan fungsi pengawasan demi
+            terwujudnya tata kelola pemerintahan desa yang baik.
+          </p>
+
         </div>
+
+
         <div class="quote-card">
-          <span class="quote-mark">“</span>
-          <p>Bersama BPD, membangun desa dengan aspirasi, partisipasi, dan gotong royong.</p>
+
+          <span class="quote-mark">
+            “
+          </span>
+
+          <p>
+            Bersama BPD, membangun desa dengan aspirasi,
+            partisipasi, dan gotong royong.
+          </p>
+
         </div>
+
       </div>
+
     </section>
 
-    <section id="struktur" class="section section-soft">
+
+    <!-- =======================================================
+         STRUKTUR BPD
+    ======================================================== -->
+    <section
+      id="struktur"
+      class="section section-soft"
+    >
+
       <div class="container">
-        <span class="section-label">KELEMBAGAAN</span>
-        <h2>Struktur BPD Desa Kendalserut</h2>
+
+        <span class="section-label">
+          KELEMBAGAAN
+        </span>
+
+        <h2>
+          Struktur BPD Desa Kendalserut
+        </h2>
+
         <div class="small-gold-line"></div>
+
+
         <div class="structure-grid">
-          <div class="member"><strong>Siti Muslicha, Amd</strong><span>Ketua</span></div>
-          <div class="member"><strong>Akhmad Suswanto, S.Pd.SD</strong><span>Wakil Ketua</span></div>
-          <div class="member"><strong>Sunjoyo, SM</strong><span>Sekretaris</span></div>
-          <div class="member"><strong>Farkhatun</strong><span>Ketua Bidang Pemerintahan dan Pembinaan Masyarakat</span></div>
-          <div class="member"><strong>Yasin Nurjati Kusumo</strong><span>Anggota Bidang Pemerintahan dan Pembinaan Masyarakat</span></div>
-          <div class="member"><strong>Mohamad Nur Ikhwan</strong><span>Ketua Bidang Pembangunan dan Pemberdayaan Masyarakat</span></div>
-          <div class="member"><strong>Udi Pamungkas</strong><span>Anggota Bidang Pembangunan dan Pemberdayaan Masyarakat</span></div>
+
+          <div class="member">
+            <strong>
+              Siti Muslicha, Amd
+            </strong>
+
+            <span>
+              Ketua
+            </span>
+          </div>
+
+
+          <div class="member">
+            <strong>
+              Akhmad Suswanto, S.Pd.SD
+            </strong>
+
+            <span>
+              Wakil Ketua
+            </span>
+          </div>
+
+
+          <div class="member">
+            <strong>
+              Sunjoyo, SM
+            </strong>
+
+            <span>
+              Sekretaris
+            </span>
+          </div>
+
+
+          <div class="member">
+            <strong>
+              Farkhatun
+            </strong>
+
+            <span>
+              Ketua Bidang Pemerintahan dan Pembinaan Masyarakat
+            </span>
+          </div>
+
+
+          <div class="member">
+            <strong>
+              Yasin Nurjati Kusumo
+            </strong>
+
+            <span>
+              Anggota Bidang Pemerintahan dan Pembinaan Masyarakat
+            </span>
+          </div>
+
+
+          <div class="member">
+            <strong>
+              Mohamad Nur Ikhwan
+            </strong>
+
+            <span>
+              Ketua Bidang Pembangunan dan Pemberdayaan Masyarakat
+            </span>
+          </div>
+
+
+          <div class="member">
+            <strong>
+              Udi Pamungkas
+            </strong>
+
+            <span>
+              Anggota Bidang Pembangunan dan Pemberdayaan Masyarakat
+            </span>
+          </div>
+
         </div>
+
       </div>
+
     </section>
 
-    <section id="aspirasi" class="section">
+
+    <!-- =======================================================
+         ASPIRASI
+    ======================================================== -->
+    <section
+      id="aspirasi"
+      class="section"
+    >
+
       <div class="container action-panel">
+
         <div>
-          <span class="section-label">LAYANAN MASYARAKAT</span>
-          <h2>Sampaikan Aspirasi Anda</h2>
-          <p>Gunakan layanan aspirasi untuk menyampaikan saran, masukan, atau kebutuhan masyarakat kepada BPD Desa Kendalserut.</p>
+
+          <span class="section-label">
+            LAYANAN MASYARAKAT
+          </span>
+
+          <h2>
+            Sampaikan Aspirasi Anda
+          </h2>
+
+          <p>
+            Gunakan layanan aspirasi untuk menyampaikan saran,
+            masukan, atau kebutuhan masyarakat kepada BPD
+            Desa Kendalserut.
+          </p>
+
         </div>
-        <a class="btn btn-primary" href="#aspirasi-form">Kirim Aspirasi →</a>
+
+
+        <a
+          class="btn btn-primary"
+          href="#aspirasi-form"
+        >
+          Kirim Aspirasi →
+        </a>
+
       </div>
-      <div id="aspirasi-form" class="container service-note">
-        <p><strong>Catatan:</strong> bagian formulir aspirasi dan koneksi Supabase tetap menggunakan <code>app.js</code> yang sudah berhasil. Jangan menghapus atau mengganti file tersebut saat mengunggah desain ini.</p>
+
+
+      <div
+        id="aspirasi-form"
+        class="container service-note"
+      >
+
+        <p>
+          <strong>Catatan:</strong>
+          bagian formulir aspirasi dan koneksi Supabase
+          tetap menggunakan <code>app.js</code> yang sudah
+          ada pada project.
+        </p>
+
       </div>
+
     </section>
 
-    <section id="cek" class="section section-soft">
+
+    <!-- =======================================================
+         CEK ASPIRASI
+    ======================================================== -->
+    <section
+      id="cek"
+      class="section section-soft"
+    >
+
       <div class="container action-panel">
+
         <div>
-          <span class="section-label">PELACAKAN</span>
-          <h2>Cek Status Aspirasi</h2>
-          <p>Masukkan nomor tiket aspirasi untuk melihat status dan tanggapan dari BPD.</p>
+
+          <span class="section-label">
+            PELACAKAN
+          </span>
+
+          <h2>
+            Cek Status Aspirasi
+          </h2>
+
+          <p>
+            Masukkan nomor tiket aspirasi untuk melihat
+            status dan tanggapan dari BPD.
+          </p>
+
         </div>
-        <a class="btn btn-primary" href="#cek-form">Cek Nomor Tiket →</a>
+
+
+        <a
+          class="btn btn-primary"
+          href="#cek-form"
+        >
+          Cek Nomor Tiket →
+        </a>
+
       </div>
-      <div id="cek-form" class="container service-note">
-        <p>Contoh nomor tiket: <strong>ASP-20260814-7220</strong></p>
+
+
+      <div
+        id="cek-form"
+        class="container service-note"
+      >
+
+        <p>
+          Contoh nomor tiket:
+          <strong>
+            ASP-20260814-7220
+          </strong>
+        </p>
+
       </div>
+
     </section>
 
-    <section id="kontak" class="contact-section">
+
+    <!-- =======================================================
+         KONTAK
+    ======================================================== -->
+    <section
+      id="kontak"
+      class="contact-section"
+    >
+
       <div class="container contact-grid">
+
         <div>
-          <span class="section-label light-label">KONTAK</span>
-          <h2>Hubungi BPD Desa Kendalserut</h2>
-          <p>Untuk informasi dan komunikasi kelembagaan BPD, silakan gunakan kanal kontak yang tersedia.</p>
+
+          <span class="section-label light-label">
+            KONTAK
+          </span>
+
+          <h2>
+            Hubungi BPD Desa Kendalserut
+          </h2>
+
+          <p>
+            Untuk informasi dan komunikasi kelembagaan BPD,
+            silakan gunakan kanal kontak yang tersedia.
+          </p>
+
         </div>
+
+
         <div class="contact-box">
-          <p>✉️ <strong>bpd.kendalserut@gmail.com</strong></p>
-          <p>☎️ <strong>(0283) 1234567</strong></p>
-          <p>📍 Desa Kendalserut, Kecamatan Pangkah, Kabupaten Tegal</p>
+
+          <p>
+            ✉️
+            <strong>
+              bpd.kendalserut@gmail.com
+            </strong>
+          </p>
+
+          <p>
+            ☎️
+            <strong>
+              (0283) 1234567
+            </strong>
+          </p>
+
+          <p>
+            📍 Desa Kendalserut,
+            Kecamatan Pangkah,
+            Kabupaten Tegal
+          </p>
+
         </div>
+
       </div>
+
     </section>
+
   </main>
 
+
+  <!-- =========================================================
+       FOOTER
+  ========================================================== -->
   <footer id="admin">
+
     <div class="container footer-inner">
-      <span>© 2026 BPD Desa Kendalserut. All rights reserved.</span>
-      <span>♥ Bersama Membangun Desa yang Maju dan Sejahtera</span>
+
+      <span>
+        © 2026 BPD Desa Kendalserut. All rights reserved.
+      </span>
+
+      <span>
+        ♥ Bersama Membangun Desa yang Maju dan Sejahtera
+      </span>
+
     </div>
+
   </footer>
 
+
+  <!-- =========================================================
+       MENU MOBILE
+  ========================================================== -->
   <script>
     const toggle = document.querySelector('.menu-toggle');
     const nav = document.querySelector('.main-nav');
-    toggle?.addEventListener('click', () => nav.classList.toggle('open'));
-    document.querySelectorAll('.main-nav a').forEach(a => {
-      a.addEventListener('click', () => nav.classList.remove('open'));
+
+    if (toggle && nav) {
+
+      toggle.addEventListener('click', () => {
+
+        const isOpen = nav.classList.toggle('open');
+
+        toggle.setAttribute(
+          'aria-expanded',
+          isOpen ? 'true' : 'false'
+        );
+
+      });
+
+    }
+
+
+    document.querySelectorAll('.main-nav a').forEach((link) => {
+
+      link.addEventListener('click', () => {
+
+        if (nav) {
+          nav.classList.remove('open');
+        }
+
+        if (toggle) {
+          toggle.setAttribute(
+            'aria-expanded',
+            'false'
+          );
+        }
+
+      });
+
     });
   </script>
 
-  <!-- PENTING:
-       Tetap muat app.js milik project lama setelah style baru ini.
-       Jika app.js Anda sudah memiliki konfigurasi Supabase, jangan ganti dengan key baru.
-       Tambahkan baris berikut sebelum </body> jika app.js memang berada di root:
-       <script type="module" src="app.js"></script>
-  -->
+
+  <!-- =========================================================
+       APP.JS / SUPABASE
+       
+       PENTING:
+       app.js berada di ROOT repository.
+       Jangan menggunakan assets/app.js.
+       
+       Script ini tetap dipertahankan agar koneksi
+       Supabase dan sistem aspirasi project lama tetap berjalan.
+  ========================================================== -->
+  <script
+    type="module"
+    src="./app.js"
+  ></script>
+
+
 </body>
 </html>
