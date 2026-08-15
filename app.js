@@ -1,182 +1,107 @@
+// =====================================================
+// APP.JS — BPD DESA KENDALSERUT
+// Supabase + Aspirasi + Tiket + Cek Status + Admin
+// =====================================================
+
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-/*
-  ============================================================
-  APP.JS - BPD DESA KENDALSERUT
-  ============================================================
-  Supabase:
-  URL  : https://scyhmxfksqlwjkqhlama.supabase.co
-  Key  : publishable key (aman digunakan di frontend)
-
-  Tabel:
-  aspirasi
-  id, nomor_tiket, nama, dusun, rt_rw, whatsapp, kategori,
-  isi_aspirasi, anonim, status, tanggapan, created_at, updated_at
-*/
-
+// -----------------------------------------------------
+// KONFIGURASI SUPABASE
+// -----------------------------------------------------
 const SUPABASE_URL = "https://scyhmxfksqlwjkqhlama.supabase.co";
-const SUPABASE_KEY = "sb_publishable_StNVl1zqzZE_bsetnfi8mA_jl9TBFyI";
+const SUPABASE_ANON_KEY = "sb_publishable_StNVl1zqzZE_bsetnfi8mA_jl9TBFyI";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-document.addEventListener("DOMContentLoaded", () => {
-  initMobileMenu();
-  initAspirasiForm();
-  initCheckForm();
-  initLogin();
-  initLogout();
-  checkSession();
-});
-
-/* ============================================================
-   UTILITAS
-============================================================ */
-
-function $(selector) {
-  return document.querySelector(selector);
-}
+// -----------------------------------------------------
+// HELPER
+// -----------------------------------------------------
+const $ = (id) => document.getElementById(id);
 
 function escapeHtml(value) {
   return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function setMessage(element, message, type = "info") {
-  if (!element) return;
-
-  const colors = {
-    info: "#28563f",
-    success: "#176b45",
-    error: "#a33d3d",
-    warning: "#8a6500"
-  };
-
-  element.style.color = colors[type] || colors.info;
-  element.innerHTML = message;
+function showMessage(el, message, type = "info") {
+  if (!el) return;
+  el.textContent = message;
+  el.dataset.type = type;
 }
 
-function formatDate(dateString) {
-  if (!dateString) return "-";
-
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) return dateString;
-
-  return date.toLocaleString("id-ID", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
+function formatDate(value) {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short"
   });
 }
 
 function generateTicket() {
   const now = new Date();
-
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
   const random = Math.floor(1000 + Math.random() * 9000);
-
-  return `ASP-${year}${month}${day}-${random}`;
+  return `ASP-${y}${m}${d}-${random}`;
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+function getFriendlyError(error) {
+  const message = error?.message || String(error || "Terjadi kesalahan.");
 
-/*
-  Membuat nomor tiket yang sangat kecil kemungkinan bentrok.
-  Jika ternyata sudah ada di database, buat ulang.
-*/
-async function generateUniqueTicket() {
-  for (let i = 0; i < 5; i++) {
-    const ticket = generateTicket();
-
-    const { data, error } = await supabase
-      .from("aspirasi")
-      .select("id")
-      .eq("nomor_tiket", ticket)
-      .limit(1);
-
-    if (error) {
-      throw error;
-    }
-
-    if (!data || data.length === 0) {
-      return ticket;
-    }
+  if (message.includes("aspirasi_status_check")) {
+    return "Database menolak status aspirasi. Status awal harus \"Diterima\".";
   }
 
-  throw new Error("Tidak dapat membuat nomor tiket unik. Silakan coba lagi.");
+  if (message.toLowerCase().includes("row-level security")) {
+    return "Database menolak pengiriman karena RLS/Policy Supabase belum benar.";
+  }
+
+  if (message.toLowerCase().includes("duplicate key")) {
+    return "Nomor tiket bentrok. Silakan kirim kembali.";
+  }
+
+  return message;
 }
 
-/* ============================================================
-   MENU MOBILE
-============================================================ */
+// -----------------------------------------------------
+// FORM ASPIRASI
+// -----------------------------------------------------
+const aspForm = $("aspForm");
+const aspMsg = $("aspMsg");
 
-function initMobileMenu() {
-  const toggle = $(".menu-toggle");
-  const nav = $(".main-nav");
-
-  if (!toggle || !nav) return;
-
-  toggle.addEventListener("click", () => {
-    nav.classList.toggle("open");
-  });
-
-  nav.querySelectorAll("a").forEach(link => {
-    link.addEventListener("click", () => {
-      nav.classList.remove("open");
-    });
-  });
-}
-
-/* ============================================================
-   FORM ASPIRASI
-============================================================ */
-
-function initAspirasiForm() {
-  const form = $("#aspForm");
-  const message = $("#aspMsg");
-
-  if (!form) return;
-
-  form.addEventListener("submit", async (event) => {
+if (aspForm) {
+  aspForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    if (message) {
-      setMessage(message, "⏳ Sedang mengirim aspirasi...", "info");
-    }
-
-    const submitButton = form.querySelector('button[type="submit"]');
-
+    const submitButton = aspForm.querySelector('button[type="submit"]');
     if (submitButton) {
       submitButton.disabled = true;
-      submitButton.dataset.originalText = submitButton.innerHTML;
-      submitButton.innerHTML = "⏳ Mengirim...";
+      submitButton.textContent = "⏳ Mengirim...";
     }
 
-    try {
-      const namaInput = $("#nama");
-      const wilayahInput = $("#wilayah");
-      const whatsappInput = $("#whatsapp");
-      const kategoriInput = $("#kategori");
-      const isiInput = $("#isi");
-      const anonimInput = form.querySelector('input[name="anonim"]');
+    showMessage(aspMsg, "Sedang mengirim aspirasi...", "info");
 
-      const nama = (namaInput?.value || "").trim();
+    try {
+      const namaInput = $("nama");
+      const wilayahInput = $("wilayah");
+      const whatsappInput = $("whatsapp");
+      const kategoriInput = $("kategori");
+      const isiInput = $("isi");
+      const anonimInput = aspForm.querySelector('input[name="anonim"]');
+
+      const anonim = Boolean(anonimInput?.checked);
+      const nama = anonim ? "Anonim" : (namaInput?.value || "").trim();
       const wilayah = (wilayahInput?.value || "").trim();
       const whatsapp = (whatsappInput?.value || "").trim();
       const kategori = (kategoriInput?.value || "").trim();
       const isi = (isiInput?.value || "").trim();
-      const anonim = Boolean(anonimInput?.checked);
 
       if (!kategori) {
         throw new Error("Silakan pilih kategori aspirasi.");
@@ -186,271 +111,150 @@ function initAspirasiForm() {
         throw new Error("Isi aspirasi wajib diisi.");
       }
 
-      /*
-        Kolom database memiliki:
-        dusun
-        rt_rw
-
-        Sementara form HTML saat ini hanya mempunyai satu input
-        "wilayah". Agar tetap kompatibel, isi wilayah disimpan
-        ke kolom dusun dan rt_rw dikosongkan.
-
-        Jika pengguna menulis "RT 02 / RW 05", kita simpan ke rt_rw.
-        Selain itu kita simpan ke dusun.
-      */
-      let dusun = wilayah;
-      let rt_rw = "";
-
-      const rtRwPattern = /(?:RT\s*\d+.*RW\s*\d+|RW\s*\d+.*RT\s*\d+)/i;
-
-      if (rtRwPattern.test(wilayah)) {
-        rt_rw = wilayah;
-        dusun = "";
-      }
-
-      const nomorTiket = await generateUniqueTicket();
+      const nomorTiket = generateTicket();
 
       const payload = {
         nomor_tiket: nomorTiket,
-        nama: anonim ? "Anonim" : (nama || "Masyarakat"),
-        dusun: dusun || null,
-        rt_rw: rt_rw || null,
-        whatsapp: whatsapp || null,
-        kategori,
+        nama: nama || "Anonim",
+        dusun: wilayah,
+        rt_rw: wilayah,
+        whatsapp: whatsapp,
+        kategori: kategori,
         isi_aspirasi: isi,
-        anonim,
-        status: "Diajukan",
+        anonim: anonim,
+        status: "Diterima",
         tanggapan: null
       };
 
       const { data, error } = await supabase
         .from("aspirasi")
-        .insert([payload])
-        .select()
+        .insert(payload)
+        .select("id, nomor_tiket, status, created_at")
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      const savedTicket = data?.nomor_tiket || nomorTiket;
-
-      setMessage(
-        message,
-        `
-        <div class="result ticket-result">
-          <strong>✅ Aspirasi berhasil dikirim.</strong><br><br>
-          Nomor tiket Anda:<br>
-          <strong style="font-size:22px;">${escapeHtml(savedTicket)}</strong>
-          <br><br>
-          <small>
-            Simpan nomor tiket ini untuk mengecek status aspirasi.
-          </small>
-        </div>
-        `,
+      showMessage(
+        aspMsg,
+        `✅ Aspirasi berhasil dikirim!\n\nNomor Tiket Anda: ${data.nomor_tiket}\nStatus: ${data.status}\n\nSimpan nomor tiket ini untuk mengecek perkembangan aspirasi.`,
         "success"
       );
 
-      form.reset();
+      aspForm.reset();
 
-      const ticketInput = $("#ticket");
-
-      if (ticketInput) {
-        ticketInput.value = savedTicket;
-      }
+      const ticketInput = $("ticket");
+      if (ticketInput) ticketInput.value = data.nomor_tiket;
 
     } catch (error) {
       console.error("Gagal mengirim aspirasi:", error);
-
-      let messageText = error?.message || "Terjadi kesalahan saat mengirim aspirasi.";
-
-      /*
-        Pesan yang lebih mudah dipahami untuk masalah RLS.
-      */
-      if (
-        messageText.toLowerCase().includes("row-level security") ||
-        messageText.toLowerCase().includes("permission denied") ||
-        messageText.toLowerCase().includes("not allowed")
-      ) {
-        messageText =
-          "Database menolak pengiriman karena pengaturan RLS/Policy Supabase belum benar.";
-      }
-
-      setMessage(
-        message,
-        `❌ ${escapeHtml(messageText)}<br><small>Periksa Console browser (F12) jika masalah masih terjadi.</small>`,
+      showMessage(
+        aspMsg,
+        `❌ ${getFriendlyError(error)}\n\nPeriksa Console browser (F12) jika masalah masih terjadi.`,
         "error"
       );
-
     } finally {
       if (submitButton) {
         submitButton.disabled = false;
-        submitButton.innerHTML =
-          submitButton.dataset.originalText || "📣 Kirim Aspirasi";
+        submitButton.textContent = "📣 Kirim Aspirasi";
       }
     }
   });
 }
 
-/* ============================================================
-   CEK NOMOR TIKET
-============================================================ */
+// -----------------------------------------------------
+// CEK STATUS ASPIRASI
+// -----------------------------------------------------
+const checkForm = $("checkForm");
+const checkResult = $("checkResult");
 
-function initCheckForm() {
-  const form = $("#checkForm");
-  const result = $("#checkResult");
-
-  if (!form) return;
-
-  form.addEventListener("submit", async (event) => {
+if (checkForm) {
+  checkForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const ticketInput = $("#ticket");
-    const ticket = (ticketInput?.value || "").trim().toUpperCase();
+    const input = $("ticket");
+    const ticket = (input?.value || "").trim().toUpperCase();
 
     if (!ticket) {
-      setMessage(result, "Masukkan nomor tiket terlebih dahulu.", "warning");
+      if (checkResult) {
+        checkResult.innerHTML = '<div class="result">❌ Masukkan nomor tiket terlebih dahulu.</div>';
+      }
       return;
     }
 
-    setMessage(result, "⏳ Mencari nomor tiket...", "info");
-
-    const button = form.querySelector('button[type="submit"]');
-
-    if (button) {
-      button.disabled = true;
-      button.dataset.originalText = button.innerHTML;
-      button.innerHTML = "⏳ Mencari...";
+    if (checkResult) {
+      checkResult.innerHTML = '<div class="result">⏳ Mencari nomor tiket...</div>';
     }
 
     try {
       const { data, error } = await supabase
         .from("aspirasi")
-        .select(
-          "nomor_tiket,nama,dusun,rt_rw,kategori,isi_aspirasi,anonim,status,tanggapan,created_at,updated_at"
-        )
+        .select("nomor_tiket,nama,dusun,rt_rw,kategori,isi_aspirasi,anonim,status,tanggapan,created_at,updated_at")
         .eq("nomor_tiket", ticket)
         .maybeSingle();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (!data) {
-        setMessage(
-          result,
-          `
-          <div class="result">
-            ❌ <strong>Nomor tiket tidak ditemukan.</strong><br>
-            Pastikan nomor tiket yang dimasukkan benar.
-          </div>
-          `,
-          "error"
-        );
+        if (checkResult) {
+          checkResult.innerHTML = `
+            <div class="result">
+              ❌ Nomor tiket <strong>${escapeHtml(ticket)}</strong> tidak ditemukan.
+            </div>`;
+        }
         return;
       }
 
-      const namaTampil = data.anonim ? "Anonim" : (data.nama || "-");
+      const namaTampil = data.anonim ? "Anonim" : (data.nama || "Tidak disebutkan");
 
-      setMessage(
-        result,
-        `
-        <div class="result ticket-result">
-          <h3 style="margin-top:0;">Hasil Pelacakan Aspirasi</h3>
-
-          <p>
-            <strong>Nomor Tiket:</strong><br>
-            ${escapeHtml(data.nomor_tiket)}
-          </p>
-
-          <p>
-            <strong>Status:</strong><br>
-            <span class="status">${escapeHtml(data.status || "Diajukan")}</span>
-          </p>
-
-          <p>
-            <strong>Nama:</strong><br>
-            ${escapeHtml(namaTampil)}
-          </p>
-
-          <p>
-            <strong>Kategori:</strong><br>
-            ${escapeHtml(data.kategori || "-")}
-          </p>
-
-          <p>
-            <strong>Isi Aspirasi:</strong><br>
-            ${escapeHtml(data.isi_aspirasi || "-")}
-          </p>
-
-          <p>
-            <strong>Tanggapan BPD:</strong><br>
-            ${escapeHtml(data.tanggapan || "Belum ada tanggapan.")}
-          </p>
-
-          <p>
-            <strong>Dikirim:</strong><br>
-            ${escapeHtml(formatDate(data.created_at))}
-          </p>
-
-          <p>
-            <strong>Diperbarui:</strong><br>
-            ${escapeHtml(formatDate(data.updated_at))}
-          </p>
-        </div>
-        `,
-        "success"
-      );
+      if (checkResult) {
+        checkResult.innerHTML = `
+          <div class="result ticket-result">
+            <h3>🎫 ${escapeHtml(data.nomor_tiket)}</h3>
+            <p><strong>Status:</strong> <span class="status">${escapeHtml(data.status)}</span></p>
+            <p><strong>Nama:</strong> ${escapeHtml(namaTampil)}</p>
+            <p><strong>Kategori:</strong> ${escapeHtml(data.kategori)}</p>
+            <p><strong>Aspirasi:</strong><br>${escapeHtml(data.isi_aspirasi).replace(/\n/g, "<br>")}</p>
+            <p><strong>Dikirim:</strong> ${escapeHtml(formatDate(data.created_at))}</p>
+            <p><strong>Tanggapan BPD:</strong><br>
+              ${data.tanggapan
+                ? escapeHtml(data.tanggapan).replace(/\n/g, "<br>")
+                : "<em>Belum ada tanggapan.</em>"}
+            </p>
+            <p><strong>Pembaruan terakhir:</strong> ${escapeHtml(formatDate(data.updated_at))}</p>
+          </div>`;
+      }
 
     } catch (error) {
-      console.error("Gagal mengecek tiket:", error);
+      console.error("Gagal mengecek aspirasi:", error);
 
-      setMessage(
-        result,
-        `❌ ${escapeHtml(error?.message || "Gagal mengambil data aspirasi.")}`,
-        "error"
-      );
-
-    } finally {
-      if (button) {
-        button.disabled = false;
-        button.innerHTML =
-          button.dataset.originalText || "🔎 Cek Status";
+      if (checkResult) {
+        checkResult.innerHTML = `
+          <div class="result">
+            ❌ ${escapeHtml(getFriendlyError(error))}
+          </div>`;
       }
     }
   });
 }
 
-/* ============================================================
-   LOGIN ADMIN SUPABASE AUTH
-============================================================ */
+// -----------------------------------------------------
+// LOGIN ADMIN
+// -----------------------------------------------------
+const loginForm = $("loginForm");
+const loginMsg = $("loginMsg");
+const adminDash = $("adminDash");
+const logoutBtn = $("logoutBtn");
 
-function initLogin() {
-  const form = $("#loginForm");
-  const message = $("#loginMsg");
-
-  if (!form) return;
-
-  form.addEventListener("submit", async (event) => {
+if (loginForm) {
+  loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const email = ($("#email")?.value || "").trim();
-    const password = $("#password")?.value || "";
+    const email = ($("email")?.value || "").trim();
+    const password = $("password")?.value || "";
 
-    if (!email || !password) {
-      setMessage(message, "Email dan password wajib diisi.", "error");
-      return;
-    }
+    if (!email || !password) return;
 
-    const button = form.querySelector('button[type="submit"]');
-
-    if (button) {
-      button.disabled = true;
-      button.dataset.originalText = button.innerHTML;
-      button.innerHTML = "⏳ Memproses...";
-    }
-
-    setMessage(message, "⏳ Memeriksa akun admin...", "info");
+    showMessage(loginMsg, "⏳ Memproses login...", "info");
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -458,455 +262,245 @@ function initLogin() {
         password
       });
 
-      if (error) {
-        throw error;
-      }
-
-      if (!data?.session) {
-        throw new Error("Login berhasil tetapi sesi admin tidak ditemukan.");
-      }
-
-      setMessage(message, "✅ Login berhasil.", "success");
-
-      await sleep(300);
-
-      await showAdminDashboard(data.user);
-
-      const dashboard = $("#adminDash");
-
-      if (dashboard) {
-        dashboard.scrollIntoView({
-          behavior: "smooth",
-          block: "start"
-        });
-      }
-
-    } catch (error) {
-      console.error("Login admin gagal:", error);
-
-      let msg = error?.message || "Login gagal.";
-
-      if (msg.toLowerCase().includes("invalid login credentials")) {
-        msg = "Email atau password admin salah.";
-      }
-
-      setMessage(message, `❌ ${escapeHtml(msg)}`, "error");
-
-    } finally {
-      if (button) {
-        button.disabled = false;
-        button.innerHTML =
-          button.dataset.originalText || "🔐 Masuk ke Dashboard";
-      }
-    }
-  });
-}
-
-/* ============================================================
-   CEK SESSION
-============================================================ */
-
-async function checkSession() {
-  try {
-    const { data, error } = await supabase.auth.getSession();
-
-    if (error) {
-      console.error("Gagal membaca session:", error);
-      return;
-    }
-
-    if (data?.session?.user) {
-      await showAdminDashboard(data.session.user);
-    }
-  } catch (error) {
-    console.error("Session error:", error);
-  }
-
-  supabase.auth.onAuthStateChange(async (_event, session) => {
-    if (session?.user) {
-      await showAdminDashboard(session.user);
-    } else {
-      hideAdminDashboard();
-    }
-  });
-}
-
-/* ============================================================
-   LOGOUT
-============================================================ */
-
-function initLogout() {
-  const logoutButton = $("#logoutBtn");
-
-  if (!logoutButton) return;
-
-  logoutButton.addEventListener("click", async () => {
-    logoutButton.disabled = true;
-
-    try {
-      const { error } = await supabase.auth.signOut();
-
       if (error) throw error;
 
-      hideAdminDashboard();
+      showMessage(loginMsg, "✅ Login berhasil.", "success");
 
-      const loginSection = $("#login-admin");
+      loginForm.reset();
+      showAdminDashboard(data.user);
 
-      if (loginSection) {
-        loginSection.scrollIntoView({
-          behavior: "smooth"
-        });
-      }
+      setTimeout(() => {
+        adminDash?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
 
     } catch (error) {
-      console.error("Logout gagal:", error);
-      alert("Logout gagal: " + (error?.message || "Kesalahan tidak diketahui."));
-    } finally {
-      logoutButton.disabled = false;
+      console.error("Login gagal:", error);
+      showMessage(loginMsg, `❌ ${getFriendlyError(error)}`, "error");
     }
   });
 }
 
-/* ============================================================
-   DASHBOARD ADMIN
-============================================================ */
-
+// -----------------------------------------------------
+// DASHBOARD ADMIN
+// -----------------------------------------------------
 async function showAdminDashboard(user) {
-  const dashboard = $("#adminDash");
-  const logoutButton = $("#logoutBtn");
+  if (!adminDash) return;
 
-  if (!dashboard) return;
+  adminDash.classList.remove("hidden");
 
-  dashboard.classList.remove("hidden");
+  if (logoutBtn) logoutBtn.classList.remove("hidden");
 
-  if (logoutButton) {
-    logoutButton.classList.remove("hidden");
-  }
-
-  dashboard.innerHTML = `
-    <div style="
-      background:#245c45;
-      color:#fff;
-      padding:35px 20px;
-      margin-top:25px;
-    ">
-      <div class="container">
-        <div class="admin-topbar">
-          <div>
-            <div style="font-size:13px;opacity:.85;">
-              DASHBOARD ADMIN BPD
-            </div>
-            <h2 style="margin:5px 0;color:#fff;">
-              Kelola Aspirasi Masyarakat
-            </h2>
-            <div class="admin-user">
-              Login: ${escapeHtml(user?.email || "-")}
-            </div>
-          </div>
+  adminDash.innerHTML = `
+    <div class="container" style="padding:30px 0;">
+      <div class="action-panel">
+        <div>
+          <span class="section-label">DASHBOARD ADMIN</span>
+          <h2>Kelola Aspirasi Masyarakat</h2>
+          <p class="admin-user">
+            Login sebagai: <strong>${escapeHtml(user?.email || "")}</strong>
+          </p>
         </div>
+      </div>
 
-        <div style="
-          background:#fff;
-          color:#29483a;
-          border-radius:16px;
-          padding:20px;
-          margin-top:20px;
-        ">
-          <div style="
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            gap:12px;
-            flex-wrap:wrap;
-          ">
-            <h3 style="margin:0;">
-              Data Aspirasi
-            </h3>
-
-            <button
-              id="refreshAspirasi"
-              class="btn btn-primary"
-              type="button"
-            >
-              🔄 Muat Ulang
-            </button>
-          </div>
-
-          <div id="adminAspirasiList" style="margin-top:20px;">
-            ⏳ Memuat data...
-          </div>
-        </div>
+      <div id="adminAspirasiList" class="service-form">
+        <p>⏳ Memuat data aspirasi...</p>
       </div>
     </div>
   `;
 
-  const refresh = $("#refreshAspirasi");
-
-  if (refresh) {
-    refresh.addEventListener("click", loadAdminAspirasi);
-  }
-
-  await loadAdminAspirasi();
+  await loadAdminAspirations();
+  await loadNewsForAdmin();
 }
 
-/* ============================================================
-   MUAT DATA ASPIRASI UNTUK ADMIN
-============================================================ */
-
-async function loadAdminAspirasi() {
-  const container = $("#adminAspirasiList");
-
-  if (!container) return;
-
-  container.innerHTML = "⏳ Memuat data aspirasi...";
+async function loadAdminAspirations() {
+  const list = $("adminAspirasiList");
+  if (!list) return;
 
   try {
     const { data, error } = await supabase
       .from("aspirasi")
-      .select(
-        "id,nomor_tiket,nama,dusun,rt_rw,whatsapp,kategori,isi_aspirasi,anonim,status,tanggapan,created_at,updated_at"
-      )
+      .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    if (!data || data.length === 0) {
-      container.innerHTML = `
-        <div class="result">
-          Belum ada aspirasi yang masuk.
-        </div>
-      `;
+    if (!data?.length) {
+      list.innerHTML = "<p>Belum ada aspirasi masuk.</p>";
       return;
     }
 
-    container.innerHTML = data.map(item => {
-      const status = item.status || "Diajukan";
+    list.innerHTML = `
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:10px;">Tiket</th>
+              <th style="text-align:left;padding:10px;">Nama</th>
+              <th style="text-align:left;padding:10px;">Kategori</th>
+              <th style="text-align:left;padding:10px;">Aspirasi</th>
+              <th style="text-align:left;padding:10px;">Status</th>
+              <th style="text-align:left;padding:10px;">Tanggapan</th>
+              <th style="padding:10px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(row => `
+              <tr>
+                <td style="padding:10px;vertical-align:top;"><strong>${escapeHtml(row.nomor_tiket)}</strong><br><small>${escapeHtml(formatDate(row.created_at))}</small></td>
+                <td style="padding:10px;vertical-align:top;">${escapeHtml(row.anonim ? "Anonim" : row.nama)}</td>
+                <td style="padding:10px;vertical-align:top;">${escapeHtml(row.kategori)}</td>
+                <td style="padding:10px;vertical-align:top;min-width:220px;">${escapeHtml(row.isi_aspirasi).replace(/\n/g, "<br>")}</td>
+                <td style="padding:10px;vertical-align:top;">
+                  <select data-status="${escapeHtml(row.id)}">
+                    ${["Diterima","Diproses","Ditindaklanjuti","Selesai"].map(status =>
+                      `<option value="${status}" ${row.status === status ? "selected" : ""}>${status}</option>`
+                    ).join("")}
+                  </select>
+                </td>
+                <td style="padding:10px;vertical-align:top;min-width:220px;">
+                  <textarea data-response="${escapeHtml(row.id)}" rows="4" style="width:100%;box-sizing:border-box;">${escapeHtml(row.tanggapan || "")}</textarea>
+                </td>
+                <td style="padding:10px;vertical-align:top;text-align:center;">
+                  <button type="button" class="btn btn-primary" data-save="${escapeHtml(row.id)}">Simpan</button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div id="adminSaveMsg" class="form-message" aria-live="polite"></div>
+    `;
 
-      return `
-        <article style="
-          border:1px solid #e1e8e3;
-          border-radius:14px;
-          padding:18px;
-          margin-bottom:15px;
-          background:#fff;
-        ">
-          <div style="
-            display:flex;
-            justify-content:space-between;
-            gap:10px;
-            flex-wrap:wrap;
-          ">
-            <strong style="font-size:17px;">
-              ${escapeHtml(item.nomor_tiket)}
-            </strong>
-
-            <span class="status">
-              ${escapeHtml(status)}
-            </span>
-          </div>
-
-          <hr style="border:0;border-top:1px solid #e7ece9;margin:15px 0;">
-
-          <p>
-            <strong>Nama:</strong>
-            ${escapeHtml(item.anonim ? "Anonim" : (item.nama || "-"))}
-          </p>
-
-          <p>
-            <strong>Wilayah:</strong>
-            ${escapeHtml(
-              [item.dusun, item.rt_rw].filter(Boolean).join(" / ") || "-"
-            )}
-          </p>
-
-          <p>
-            <strong>WhatsApp:</strong>
-            ${escapeHtml(item.whatsapp || "-")}
-          </p>
-
-          <p>
-            <strong>Kategori:</strong>
-            ${escapeHtml(item.kategori || "-")}
-          </p>
-
-          <p>
-            <strong>Isi:</strong><br>
-            ${escapeHtml(item.isi_aspirasi || "-")}
-          </p>
-
-          <p>
-            <strong>Tanggapan:</strong><br>
-            ${escapeHtml(item.tanggapan || "Belum ada tanggapan.")}
-          </p>
-
-          <small>
-            Dikirim: ${escapeHtml(formatDate(item.created_at))}
-          </small>
-
-          <div style="
-            margin-top:15px;
-            display:grid;
-            grid-template-columns:1fr;
-            gap:10px;
-          ">
-            <select
-              id="status-${escapeHtml(item.id)}"
-              style="
-                padding:11px;
-                border:1px solid #d7e0da;
-                border-radius:9px;
-              "
-            >
-              ${statusOption("Diajukan", status)}
-              ${statusOption("Diproses", status)}
-              ${statusOption("Diteruskan", status)}
-              ${statusOption("Selesai", status)}
-              ${statusOption("Ditolak", status)}
-            </select>
-
-            <textarea
-              id="tanggapan-${escapeHtml(item.id)}"
-              placeholder="Tulis tanggapan BPD..."
-              style="
-                width:100%;
-                min-height:90px;
-                box-sizing:border-box;
-                padding:11px;
-                border:1px solid #d7e0da;
-                border-radius:9px;
-                resize:vertical;
-              "
-            >${escapeHtml(item.tanggapan || "")}</textarea>
-
-            <button
-              class="btn btn-primary save-aspirasi"
-              type="button"
-              data-id="${escapeHtml(item.id)}"
-            >
-              💾 Simpan Perubahan
-            </button>
-
-            <div
-              id="save-msg-${escapeHtml(item.id)}"
-              style="font-size:13px;"
-            ></div>
-          </div>
-        </article>
-      `;
-    }).join("");
-
-    container.querySelectorAll(".save-aspirasi").forEach(button => {
+    list.querySelectorAll("[data-save]").forEach(button => {
       button.addEventListener("click", async () => {
-        await updateAspirasi(button.dataset.id);
+        await updateAspirasi(button.dataset.save);
       });
     });
 
   } catch (error) {
-    console.error("Gagal memuat dashboard:", error);
-
-    container.innerHTML = `
-      <div class="result" style="border-left:4px solid #a33d3d;">
-        ❌ Gagal memuat data aspirasi.<br><br>
-        ${escapeHtml(error?.message || "Kesalahan tidak diketahui.")}
-        <br><br>
-        <small>
-          Jika muncul "permission denied" atau "row-level security",
-          periksa Policy RLS tabel aspirasi di Supabase.
-        </small>
-      </div>
-    `;
+    console.error("Gagal memuat aspirasi admin:", error);
+    list.innerHTML = `<div class="result">❌ ${escapeHtml(getFriendlyError(error))}</div>`;
   }
 }
-
-function statusOption(value, current) {
-  return `
-    <option value="${escapeHtml(value)}" ${value === current ? "selected" : ""}>
-      ${escapeHtml(value)}
-    </option>
-  `;
-}
-
-/* ============================================================
-   UPDATE ASPIRASI ADMIN
-============================================================ */
 
 async function updateAspirasi(id) {
-  const statusElement = document.querySelector(`#status-${CSS.escape(String(id))}`);
-  const tanggapanElement = document.querySelector(`#tanggapan-${CSS.escape(String(id))}`);
-  const messageElement = document.querySelector(`#save-msg-${CSS.escape(String(id))}`);
+  const statusEl = document.querySelector(`[data-status="${CSS.escape(id)}"]`);
+  const responseEl = document.querySelector(`[data-response="${CSS.escape(id)}"]`);
+  const msg = $("adminSaveMsg");
 
-  if (!statusElement || !tanggapanElement) return;
-
-  if (messageElement) {
-    setMessage(messageElement, "⏳ Menyimpan...", "info");
-  }
+  const status = statusEl?.value;
+  const tanggapan = responseEl?.value?.trim() || null;
 
   try {
-    const status = statusElement.value;
-    const tanggapan = tanggapanElement.value.trim();
-
     const { error } = await supabase
       .from("aspirasi")
       .update({
         status,
-        tanggapan: tanggapan || null,
+        tanggapan,
         updated_at: new Date().toISOString()
       })
       .eq("id", id);
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    if (messageElement) {
-      setMessage(messageElement, "✅ Perubahan berhasil disimpan.", "success");
-    }
-
-    await loadAdminAspirasi();
+    showMessage(msg, "✅ Aspirasi berhasil diperbarui.", "success");
 
   } catch (error) {
-    console.error("Gagal update aspirasi:", error);
+    console.error("Gagal memperbarui aspirasi:", error);
+    showMessage(msg, `❌ ${getFriendlyError(error)}`, "error");
+  }
+}
 
-    if (messageElement) {
-      setMessage(
-        messageElement,
-        `❌ ${escapeHtml(error?.message || "Gagal menyimpan perubahan.")}`,
-        "error"
-      );
+// -----------------------------------------------------
+// BERITA
+// -----------------------------------------------------
+async function loadNews() {
+  const newsList = $("newsList");
+  if (!newsList) return;
+
+  // Hanya mencoba membaca tabel berita jika memang tersedia.
+  // Jika tabel belum dibuat, halaman tetap normal.
+  try {
+    const { data, error } = await supabase
+      .from("berita")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(12);
+
+    if (error) {
+      console.info("Tabel berita belum tersedia atau belum diberi policy.");
+      return;
     }
+
+    if (!data?.length) return;
+
+    newsList.innerHTML = data.map(item => `
+      <article>
+        <h3>${escapeHtml(item.judul || item.title || "Berita BPD")}</h3>
+        ${item.created_at ? `<small>${escapeHtml(formatDate(item.created_at))}</small>` : ""}
+        <p>${escapeHtml(item.isi || item.konten || item.deskripsi || "").replace(/\n/g, "<br>")}</p>
+      </article>
+    `).join("");
+
+  } catch (error) {
+    console.info("Berita tidak dimuat:", error);
   }
 }
 
-/* ============================================================
-   SEMBUNYIKAN DASHBOARD
-============================================================ */
+async function loadNewsForAdmin() {
+  // Placeholder agar dashboard tetap kompatibel jika tabel berita
+  // belum dibuat. Fitur berita tidak mengganggu fitur aspirasi.
+}
 
-function hideAdminDashboard() {
-  const dashboard = $("#adminDash");
-  const logoutButton = $("#logoutBtn");
+// -----------------------------------------------------
+// LOGOUT
+// -----------------------------------------------------
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      adminDash?.classList.add("hidden");
+      adminDash.innerHTML = "";
+      logoutBtn.classList.add("hidden");
 
-  if (dashboard) {
-    dashboard.classList.add("hidden");
-    dashboard.innerHTML = "";
-  }
+      if (loginMsg) {
+        showMessage(loginMsg, "Anda telah logout.", "info");
+      }
 
-  if (logoutButton) {
-    logoutButton.classList.add("hidden");
-  }
+      window.location.hash = "login-admin";
+    }
+  });
+}
 
-  const loginMessage = $("#loginMsg");
+// -----------------------------------------------------
+// SESSION LOGIN
+// -----------------------------------------------------
+async function restoreSession() {
+  try {
+    const { data } = await supabase.auth.getSession();
 
-  if (loginMessage) {
-    loginMessage.innerHTML = "";
+    if (data?.session?.user) {
+      showAdminDashboard(data.session.user);
+    }
+  } catch (error) {
+    console.error("Gagal memulihkan sesi:", error);
   }
 }
 
-/* ============================================================
-   DEBUG SUPABASE
-============================================================ */
+supabase.auth.onAuthStateChange((_event, session) => {
+  if (session?.user) {
+    showAdminDashboard(session.user);
+  } else {
+    adminDash?.classList.add("hidden");
+    if (logoutBtn) logoutBtn.classList.add("hidden");
+  }
+});
 
-window.bpdSupabase = supabase;
+// -----------------------------------------------------
+// START
+// -----------------------------------------------------
+loadNews();
+restoreSession();
 
-console.log("BPD app.js berhasil dimuat.");
+console.log("✅ app.js BPD Desa Kendalserut berhasil dimuat.");
