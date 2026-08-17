@@ -1,36 +1,47 @@
-// =====================================================
-// APP.JS — BPD DESA KENDALSERUT
-// Supabase + Aspirasi + Tiket + Cek Status + Admin
-// =====================================================
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-
-// -----------------------------------------------------
-// KONFIGURASI SUPABASE
-// -----------------------------------------------------
 const SUPABASE_URL = "https://scyhmxfksqlwjkqhlama.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_StNVl1zqzZE_bsetnfi8mA_jl9TBFyI";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_StNVl1zqzZE_bsetnfi8mA_jl9TBFyI";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// -----------------------------------------------------
-// HELPER
-// -----------------------------------------------------
+const ADMIN_EMAIL = "mohamadnoerikhwan@gmail.com";
+
 const $ = (id) => document.getElementById(id);
 
 function escapeHtml(value) {
   return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
-function showMessage(el, message, type = "info") {
+function showLoginMessage(message, ok = false) {
+  const el = $("loginMsg");
   if (!el) return;
   el.textContent = message;
-  el.dataset.type = type;
+  el.style.color = ok ? "#246b4b" : "#9a4141";
+}
+
+function showAspMessage(message, ok = true) {
+  const el = $("aspMsg");
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = ok ? "#28563f" : "#9a4141";
+}
+
+function setLoginBusy(busy) {
+  const form = $("loginForm");
+  const button = form?.querySelector('button[type="submit"]');
+  if (!button) return;
+  button.disabled = busy;
+  button.textContent = busy ? "⏳ Memproses..." : "🔐 Masuk ke Dashboard";
+}
+
+function getStatusLabel(status) {
+  return status || "Diterima";
 }
 
 function formatDate(value) {
@@ -43,355 +54,141 @@ function formatDate(value) {
   });
 }
 
-function generateTicket() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  const random = Math.floor(1000 + Math.random() * 9000);
-  return `ASP-${y}${m}${d}-${random}`;
-}
+function renderAdminDashboard(profile, aspirations) {
+  let dash = $("adminDash");
+  if (!dash) return;
 
-function getFriendlyError(error) {
-  const message = error?.message || String(error || "Terjadi kesalahan.");
+  dash.classList.remove("hidden");
 
-  if (message.includes("aspirasi_status_check")) {
-    return "Database menolak status aspirasi. Status awal harus \"Diterima\".";
-  }
+  const rows = aspirations.map((item) => `
+    <tr>
+      <td>${escapeHtml(item.nomor_tiket || "-")}</td>
+      <td>${escapeHtml(item.anonim ? "Anonim" : (item.nama || "-"))}</td>
+      <td>${escapeHtml(item.dusun || "-")}</td>
+      <td>${escapeHtml(item.kategori || "-")}</td>
+      <td>${escapeHtml((item.isi_aspirasi || "").slice(0, 120))}${(item.isi_aspirasi || "").length > 120 ? "…" : ""}</td>
+      <td><span class="status">${escapeHtml(getStatusLabel(item.status))}</span></td>
+      <td>${escapeHtml(item.tanggapan || "-")}</td>
+      <td>${escapeHtml(formatDate(item.created_at))}</td>
+      <td>
+        <button class="admin-action" data-action="detail" data-id="${escapeHtml(item.id)}">Detail</button>
+      </td>
+    </tr>
+  `).join("");
 
-  if (message.toLowerCase().includes("row-level security")) {
-    return "Database menolak pengiriman karena RLS/Policy Supabase belum benar.";
-  }
+  dash.innerHTML = `
+    <section class="section" style="background:#f4f7f5;">
+      <div class="container">
+        <div style="background:#075f48;color:#fff;border-radius:18px;padding:24px;margin-bottom:20px;">
+          <div class="admin-topbar">
+            <div>
+              <div style="font-size:13px;opacity:.85;">DASHBOARD ADMIN</div>
+              <h2 style="margin:5px 0;color:#fff;">BPD Desa Kendalserut</h2>
+              <div class="admin-user">${escapeHtml(profile?.nama_lengkap || ADMIN_EMAIL)} — ${escapeHtml(profile?.jabatan || "Admin BPD")}</div>
+            </div>
+            <button id="dashboardLogoutBtn" class="logout-button" type="button">🚪 Logout</button>
+          </div>
+        </div>
 
-  if (message.toLowerCase().includes("duplicate key")) {
-    return "Nomor tiket bentrok. Silakan kirim kembali.";
-  }
+        <div style="background:#fff;border:1px solid #e1e8e3;border-radius:18px;padding:22px;overflow:auto;">
+          <div style="display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap;margin-bottom:15px;">
+            <div>
+              <h3 style="margin:0;">Daftar Aspirasi Masyarakat</h3>
+              <p style="margin:5px 0;color:#6c7871;">Total ${aspirations.length} aspirasi</p>
+            </div>
+            <button id="refreshAspBtn" class="btn btn-primary" type="button">🔄 Refresh</button>
+          </div>
 
-  return message;
-}
+          <table style="width:100%;border-collapse:collapse;min-width:1050px;">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:10px;border-bottom:1px solid #ddd;">Tiket</th>
+                <th style="text-align:left;padding:10px;border-bottom:1px solid #ddd;">Nama</th>
+                <th style="text-align:left;padding:10px;border-bottom:1px solid #ddd;">Wilayah</th>
+                <th style="text-align:left;padding:10px;border-bottom:1px solid #ddd;">Kategori</th>
+                <th style="text-align:left;padding:10px;border-bottom:1px solid #ddd;">Aspirasi</th>
+                <th style="text-align:left;padding:10px;border-bottom:1px solid #ddd;">Status</th>
+                <th style="text-align:left;padding:10px;border-bottom:1px solid #ddd;">Tanggapan</th>
+                <th style="text-align:left;padding:10px;border-bottom:1px solid #ddd;">Tanggal</th>
+                <th style="padding:10px;border-bottom:1px solid #ddd;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>${rows || `<tr><td colspan="9" style="padding:25px;text-align:center;">Belum ada aspirasi.</td></tr>`}</tbody>
+          </table>
 
-// -----------------------------------------------------
-// FORM ASPIRASI
-// -----------------------------------------------------
-const aspForm = $("aspForm");
-const aspMsg = $("aspMsg");
-
-if (aspForm) {
-  aspForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const submitButton = aspForm.querySelector('button[type="submit"]');
-    if (submitButton) {
-      submitButton.disabled = true;
-      submitButton.textContent = "⏳ Mengirim...";
-    }
-
-    showMessage(aspMsg, "Sedang mengirim aspirasi...", "info");
-
-    try {
-      const namaInput = $("nama");
-      const wilayahInput = $("wilayah");
-      const whatsappInput = $("whatsapp");
-      const kategoriInput = $("kategori");
-      const isiInput = $("isi");
-      const anonimInput = aspForm.querySelector('input[name="anonim"]');
-
-      const anonim = Boolean(anonimInput?.checked);
-      const nama = anonim ? "Anonim" : (namaInput?.value || "").trim();
-      const wilayah = (wilayahInput?.value || "").trim();
-      const whatsapp = (whatsappInput?.value || "").trim();
-      const kategori = (kategoriInput?.value || "").trim();
-      const isi = (isiInput?.value || "").trim();
-
-      if (!kategori) {
-        throw new Error("Silakan pilih kategori aspirasi.");
-      }
-
-      if (!isi) {
-        throw new Error("Isi aspirasi wajib diisi.");
-      }
-
-      const nomorTiket = generateTicket();
-
-      const payload = {
-        nomor_tiket: nomorTiket,
-        nama: nama || "Anonim",
-        dusun: wilayah,
-        rt_rw: wilayah,
-        whatsapp: whatsapp,
-        kategori: kategori,
-        isi_aspirasi: isi,
-        anonim: anonim,
-        status: "Diterima",
-        tanggapan: null
-      };
-
-      const { data, error } = await supabase
-        .from("aspirasi")
-        .insert(payload)
-        .select("id, nomor_tiket, status, created_at")
-        .single();
-
-      if (error) throw error;
-
-      showMessage(
-        aspMsg,
-        `✅ Aspirasi berhasil dikirim!\n\nNomor Tiket Anda: ${data.nomor_tiket}\nStatus: ${data.status}\n\nSimpan nomor tiket ini untuk mengecek perkembangan aspirasi.`,
-        "success"
-      );
-
-      aspForm.reset();
-
-      const ticketInput = $("ticket");
-      if (ticketInput) ticketInput.value = data.nomor_tiket;
-
-    } catch (error) {
-      console.error("Gagal mengirim aspirasi:", error);
-      showMessage(
-        aspMsg,
-        `❌ ${getFriendlyError(error)}\n\nPeriksa Console browser (F12) jika masalah masih terjadi.`,
-        "error"
-      );
-    } finally {
-      if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.textContent = "📣 Kirim Aspirasi";
-      }
-    }
-  });
-}
-
-// -----------------------------------------------------
-// CEK STATUS ASPIRASI
-// -----------------------------------------------------
-const checkForm = $("checkForm");
-const checkResult = $("checkResult");
-
-if (checkForm) {
-  checkForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const input = $("ticket");
-    const ticket = (input?.value || "").trim().toUpperCase();
-
-    if (!ticket) {
-      if (checkResult) {
-        checkResult.innerHTML = '<div class="result">❌ Masukkan nomor tiket terlebih dahulu.</div>';
-      }
-      return;
-    }
-
-    if (checkResult) {
-      checkResult.innerHTML = '<div class="result">⏳ Mencari nomor tiket...</div>';
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from("aspirasi")
-        .select("nomor_tiket,nama,dusun,rt_rw,kategori,isi_aspirasi,anonim,status,tanggapan,created_at,updated_at")
-        .eq("nomor_tiket", ticket)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (!data) {
-        if (checkResult) {
-          checkResult.innerHTML = `
-            <div class="result">
-              ❌ Nomor tiket <strong>${escapeHtml(ticket)}</strong> tidak ditemukan.
-            </div>`;
-        }
-        return;
-      }
-
-      const namaTampil = data.anonim ? "Anonim" : (data.nama || "Tidak disebutkan");
-
-      if (checkResult) {
-        checkResult.innerHTML = `
-          <div class="result ticket-result">
-            <h3>🎫 ${escapeHtml(data.nomor_tiket)}</h3>
-            <p><strong>Status:</strong> <span class="status">${escapeHtml(data.status)}</span></p>
-            <p><strong>Nama:</strong> ${escapeHtml(namaTampil)}</p>
-            <p><strong>Kategori:</strong> ${escapeHtml(data.kategori)}</p>
-            <p><strong>Aspirasi:</strong><br>${escapeHtml(data.isi_aspirasi).replace(/\n/g, "<br>")}</p>
-            <p><strong>Dikirim:</strong> ${escapeHtml(formatDate(data.created_at))}</p>
-            <p><strong>Tanggapan BPD:</strong><br>
-              ${data.tanggapan
-                ? escapeHtml(data.tanggapan).replace(/\n/g, "<br>")
-                : "<em>Belum ada tanggapan.</em>"}
-            </p>
-            <p><strong>Pembaruan terakhir:</strong> ${escapeHtml(formatDate(data.updated_at))}</p>
-          </div>`;
-      }
-
-    } catch (error) {
-      console.error("Gagal mengecek aspirasi:", error);
-
-      if (checkResult) {
-        checkResult.innerHTML = `
-          <div class="result">
-            ❌ ${escapeHtml(getFriendlyError(error))}
-          </div>`;
-      }
-    }
-  });
-}
-
-// -----------------------------------------------------
-// LOGIN ADMIN
-// -----------------------------------------------------
-const loginForm = $("loginForm");
-const loginMsg = $("loginMsg");
-const adminDash = $("adminDash");
-const logoutBtn = $("logoutBtn");
-
-if (loginForm) {
-  loginForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const email = ($("email")?.value || "").trim();
-    const password = $("password")?.value || "";
-
-    if (!email || !password) return;
-
-    showMessage(loginMsg, "⏳ Memproses login...", "info");
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) throw error;
-
-      showMessage(loginMsg, "✅ Login berhasil.", "success");
-
-      loginForm.reset();
-      showAdminDashboard(data.user);
-
-      setTimeout(() => {
-        adminDash?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-
-    } catch (error) {
-      console.error("Login gagal:", error);
-      showMessage(loginMsg, `❌ ${getFriendlyError(error)}`, "error");
-    }
-  });
-}
-
-// -----------------------------------------------------
-// DASHBOARD ADMIN
-// -----------------------------------------------------
-async function showAdminDashboard(user) {
-  if (!adminDash) return;
-
-  adminDash.classList.remove("hidden");
-
-  if (logoutBtn) logoutBtn.classList.remove("hidden");
-
-  adminDash.innerHTML = `
-    <div class="container" style="padding:30px 0;">
-      <div class="action-panel">
-        <div>
-          <span class="section-label">DASHBOARD ADMIN</span>
-          <h2>Kelola Aspirasi Masyarakat</h2>
-          <p class="admin-user">
-            Login sebagai: <strong>${escapeHtml(user?.email || "")}</strong>
-          </p>
+          <div id="adminDetail" style="margin-top:20px;"></div>
         </div>
       </div>
+    </section>
+  `;
 
-      <div id="adminAspirasiList" class="service-form">
-        <p>⏳ Memuat data aspirasi...</p>
-      </div>
+  $("dashboardLogoutBtn")?.addEventListener("click", logoutAdmin);
+  $("refreshAspBtn")?.addEventListener("click", async () => {
+    await loadDashboard();
+  });
+
+  dash.querySelectorAll('[data-action="detail"]').forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = aspirations.find((x) => x.id === button.dataset.id);
+      if (item) renderAspirationDetail(item);
+    });
+  });
+}
+
+function renderAspirationDetail(item) {
+  const box = $("adminDetail");
+  if (!box) return;
+
+  box.innerHTML = `
+    <div style="border:1px solid #dce6df;border-radius:15px;padding:20px;background:#f8fbf9;">
+      <h3 style="margin-top:0;">Detail Aspirasi ${escapeHtml(item.nomor_tiket)}</h3>
+      <p><strong>Nama:</strong> ${escapeHtml(item.anonim ? "Anonim" : (item.nama || "-"))}</p>
+      <p><strong>Dusun/Wilayah:</strong> ${escapeHtml(item.dusun || "-")}</p>
+      <p><strong>RT/RW:</strong> ${escapeHtml(item.rt_rw || "-")}</p>
+      <p><strong>WhatsApp:</strong> ${escapeHtml(item.whatsapp || "-")}</p>
+      <p><strong>Kategori:</strong> ${escapeHtml(item.kategori || "-")}</p>
+      <p><strong>Tanggal:</strong> ${escapeHtml(formatDate(item.created_at))}</p>
+      <p><strong>Isi Aspirasi:</strong><br>${escapeHtml(item.isi_aspirasi || "-").replaceAll("\n", "<br>")}</p>
+
+      <form id="updateAspForm" style="margin-top:18px;">
+        <input type="hidden" id="updateAspId" value="${escapeHtml(item.id)}">
+        <div class="form-group">
+          <label for="updateStatus">Status</label>
+          <select id="updateStatus" required>
+            ${["Diterima","Diproses","Ditindaklanjuti","Selesai"].map(s =>
+              `<option value="${s}" ${item.status === s ? "selected" : ""}>${s}</option>`
+            ).join("")}
+          </select>
+        </div>
+        <br>
+        <div class="form-group">
+          <label for="updateTanggapan">Tanggapan BPD</label>
+          <textarea id="updateTanggapan" rows="5" placeholder="Tulis tanggapan BPD...">${escapeHtml(item.tanggapan || "")}</textarea>
+        </div>
+        <br>
+        <button class="btn btn-primary" type="submit">💾 Simpan Perubahan</button>
+        <button id="closeDetailBtn" type="button" style="margin-left:8px;padding:10px 15px;border:1px solid #ccd8d0;background:#fff;border-radius:10px;cursor:pointer;">Tutup</button>
+        <div id="updateAspMsg" style="margin-top:12px;"></div>
+      </form>
     </div>
   `;
 
-  await loadAdminAspirations();
-  await loadNewsForAdmin();
-}
+  $("closeDetailBtn")?.addEventListener("click", () => {
+    box.innerHTML = "";
+  });
 
-async function loadAdminAspirations() {
-  const list = $("adminAspirasiList");
-  if (!list) return;
+  $("updateAspForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-  try {
-    const { data, error } = await supabase
-      .from("aspirasi")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const id = $("updateAspId")?.value;
+    const status = $("updateStatus")?.value;
+    const tanggapan = $("updateTanggapan")?.value?.trim() || null;
+    const msg = $("updateAspMsg");
 
-    if (error) throw error;
+    if (!id || !status) return;
 
-    if (!data?.length) {
-      list.innerHTML = "<p>Belum ada aspirasi masuk.</p>";
-      return;
-    }
+    msg.textContent = "⏳ Menyimpan...";
 
-    list.innerHTML = `
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead>
-            <tr>
-              <th style="text-align:left;padding:10px;">Tiket</th>
-              <th style="text-align:left;padding:10px;">Nama</th>
-              <th style="text-align:left;padding:10px;">Kategori</th>
-              <th style="text-align:left;padding:10px;">Aspirasi</th>
-              <th style="text-align:left;padding:10px;">Status</th>
-              <th style="text-align:left;padding:10px;">Tanggapan</th>
-              <th style="padding:10px;">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.map(row => `
-              <tr>
-                <td style="padding:10px;vertical-align:top;"><strong>${escapeHtml(row.nomor_tiket)}</strong><br><small>${escapeHtml(formatDate(row.created_at))}</small></td>
-                <td style="padding:10px;vertical-align:top;">${escapeHtml(row.anonim ? "Anonim" : row.nama)}</td>
-                <td style="padding:10px;vertical-align:top;">${escapeHtml(row.kategori)}</td>
-                <td style="padding:10px;vertical-align:top;min-width:220px;">${escapeHtml(row.isi_aspirasi).replace(/\n/g, "<br>")}</td>
-                <td style="padding:10px;vertical-align:top;">
-                  <select data-status="${escapeHtml(row.id)}">
-                    ${["Diterima","Diproses","Ditindaklanjuti","Selesai"].map(status =>
-                      `<option value="${status}" ${row.status === status ? "selected" : ""}>${status}</option>`
-                    ).join("")}
-                  </select>
-                </td>
-                <td style="padding:10px;vertical-align:top;min-width:220px;">
-                  <textarea data-response="${escapeHtml(row.id)}" rows="4" style="width:100%;box-sizing:border-box;">${escapeHtml(row.tanggapan || "")}</textarea>
-                </td>
-                <td style="padding:10px;vertical-align:top;text-align:center;">
-                  <button type="button" class="btn btn-primary" data-save="${escapeHtml(row.id)}">Simpan</button>
-                </td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-      <div id="adminSaveMsg" class="form-message" aria-live="polite"></div>
-    `;
-
-    list.querySelectorAll("[data-save]").forEach(button => {
-      button.addEventListener("click", async () => {
-        await updateAspirasi(button.dataset.save);
-      });
-    });
-
-  } catch (error) {
-    console.error("Gagal memuat aspirasi admin:", error);
-    list.innerHTML = `<div class="result">❌ ${escapeHtml(getFriendlyError(error))}</div>`;
-  }
-}
-
-async function updateAspirasi(id) {
-  const statusEl = document.querySelector(`[data-status="${CSS.escape(id)}"]`);
-  const responseEl = document.querySelector(`[data-response="${CSS.escape(id)}"]`);
-  const msg = $("adminSaveMsg");
-
-  const status = statusEl?.value;
-  const tanggapan = responseEl?.value?.trim() || null;
-
-  try {
     const { error } = await supabase
       .from("aspirasi")
       .update({
@@ -401,106 +198,287 @@ async function updateAspirasi(id) {
       })
       .eq("id", id);
 
-    if (error) throw error;
-
-    showMessage(msg, "✅ Aspirasi berhasil diperbarui.", "success");
-
-  } catch (error) {
-    console.error("Gagal memperbarui aspirasi:", error);
-    showMessage(msg, `❌ ${getFriendlyError(error)}`, "error");
-  }
-}
-
-// -----------------------------------------------------
-// BERITA
-// -----------------------------------------------------
-async function loadNews() {
-  const newsList = $("newsList");
-  if (!newsList) return;
-
-  // Hanya mencoba membaca tabel berita jika memang tersedia.
-  // Jika tabel belum dibuat, halaman tetap normal.
-  try {
-    const { data, error } = await supabase
-      .from("berita")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(12);
-
     if (error) {
-      console.info("Tabel berita belum tersedia atau belum diberi policy.");
+      console.error("Update aspirasi:", error);
+      msg.textContent = "❌ Gagal menyimpan: " + error.message;
+      msg.style.color = "#9a4141";
       return;
     }
 
-    if (!data?.length) return;
+    msg.textContent = "✅ Perubahan berhasil disimpan.";
+    msg.style.color = "#246b4b";
+    await loadDashboard();
+  });
+}
 
-    newsList.innerHTML = data.map(item => `
-      <article>
-        <h3>${escapeHtml(item.judul || item.title || "Berita BPD")}</h3>
-        ${item.created_at ? `<small>${escapeHtml(formatDate(item.created_at))}</small>` : ""}
-        <p>${escapeHtml(item.isi || item.konten || item.deskripsi || "").replace(/\n/g, "<br>")}</p>
-      </article>
-    `).join("");
+async function loadDashboard() {
+  const { data: { user } } = await supabase.auth.getUser();
 
-  } catch (error) {
-    console.info("Berita tidak dimuat:", error);
+  if (!user) {
+    hideDashboard();
+    return false;
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("admin_profiles")
+    .select("id,email,nama_lengkap,jabatan,aktif")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error("admin_profiles:", profileError);
+    showLoginMessage("❌ Login berhasil, tetapi profil admin tidak dapat dibaca: " + profileError.message);
+    return false;
+  }
+
+  if (!profile || profile.aktif !== true) {
+    await supabase.auth.signOut();
+    hideDashboard();
+    showLoginMessage("❌ Akun berhasil login tetapi belum terdaftar/aktif sebagai admin.");
+    return false;
+  }
+
+  const { data: aspirations, error: aspError } = await supabase
+    .from("aspirasi")
+    .select("id,nomor_tiket,nama,dusun,rt_rw,whatsapp,kategori,isi_aspirasi,anonim,status,tanggapan,created_at,updated_at")
+    .order("created_at", { ascending: false });
+
+  if (aspError) {
+    console.error("aspirasi:", aspError);
+    renderAdminDashboard(profile, []);
+    const dash = $("adminDash");
+    if (dash) {
+      const warning = document.createElement("div");
+      warning.style.cssText = "max-width:1100px;margin:-5px auto 20px;padding:15px 20px;background:#fff0f0;color:#9a4141;border:1px solid #e7caca;border-radius:12px;";
+      warning.textContent = "⚠️ Login berhasil, tetapi data aspirasi tidak bisa dibaca. Periksa RLS tabel aspirasi. " + aspError.message;
+      dash.prepend(warning);
+    }
+    return true;
+  }
+
+  renderAdminDashboard(profile, aspirations || []);
+  $("loginMsg") && showLoginMessage("✅ Login berhasil.", true);
+  $("logoutBtn")?.classList.remove("hidden");
+
+  const loginSection = $("login-admin");
+  if (loginSection) loginSection.classList.add("hidden");
+
+  $("adminDash")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  return true;
+}
+
+function hideDashboard() {
+  const dash = $("adminDash");
+  if (dash) {
+    dash.classList.add("hidden");
+    dash.innerHTML = "";
+  }
+  $("logoutBtn")?.classList.add("hidden");
+}
+
+async function loginAdmin(event) {
+  event.preventDefault();
+
+  const form = $("loginForm");
+  if (!form) {
+    console.error("loginForm tidak ditemukan.");
+    return;
+  }
+
+  const email = $("email")?.value?.trim();
+  const password = $("password")?.value;
+
+  if (!email || !password) {
+    showLoginMessage("❌ Email dan password wajib diisi.");
+    return;
+  }
+
+  setLoginBusy(true);
+  showLoginMessage("⏳ Memeriksa akun...");
+
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      console.error("Supabase login:", error);
+      showLoginMessage("❌ Login gagal: " + error.message);
+      return;
+    }
+
+    if (!data?.user) {
+      showLoginMessage("❌ Login gagal: akun tidak ditemukan.");
+      return;
+    }
+
+    if (data.user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+      await supabase.auth.signOut();
+      showLoginMessage("❌ Akun ini bukan akun administrator BPD.");
+      return;
+    }
+
+    const ok = await loadDashboard();
+    if (ok) {
+      form.reset();
+    }
+  } catch (err) {
+    console.error("Kesalahan login:", err);
+    showLoginMessage("❌ Terjadi kesalahan saat login: " + (err?.message || err));
+  } finally {
+    setLoginBusy(false);
   }
 }
 
-async function loadNewsForAdmin() {
-  // Placeholder agar dashboard tetap kompatibel jika tabel berita
-  // belum dibuat. Fitur berita tidak mengganggu fitur aspirasi.
+async function logoutAdmin() {
+  await supabase.auth.signOut();
+  hideDashboard();
+
+  const loginSection = $("login-admin");
+  if (loginSection) loginSection.classList.remove("hidden");
+
+  showLoginMessage("✅ Anda sudah logout.", true);
+  loginSection?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-// -----------------------------------------------------
-// LOGOUT
-// -----------------------------------------------------
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", async () => {
-    try {
-      await supabase.auth.signOut();
-    } finally {
-      adminDash?.classList.add("hidden");
-      adminDash.innerHTML = "";
-      logoutBtn.classList.add("hidden");
+async function submitAspiration(event) {
+  event.preventDefault();
 
-      if (loginMsg) {
-        showMessage(loginMsg, "Anda telah logout.", "info");
-      }
+  const form = $("aspForm");
+  if (!form) return;
 
-      window.location.hash = "login-admin";
+  const formData = new FormData(form);
+  const nama = String(formData.get("nama") || "").trim();
+  const wilayah = String(formData.get("wilayah") || "").trim();
+  const whatsapp = String(formData.get("whatsapp") || "").trim();
+  const kategori = String(formData.get("kategori") || "").trim();
+  const isi = String(formData.get("isi") || "").trim();
+  const anonim = formData.get("anonim") === "on";
+
+  if (!kategori || !isi) {
+    showAspMessage("❌ Kategori dan isi aspirasi wajib diisi.", false);
+    return;
+  }
+
+  const button = form.querySelector('button[type="submit"]');
+  if (button) {
+    button.disabled = true;
+    button.textContent = "⏳ Mengirim...";
+  }
+
+  showAspMessage("⏳ Mengirim aspirasi...");
+
+  try {
+    const { data, error } = await supabase
+      .from("aspirasi")
+      .insert({
+        nama: anonim ? null : (nama || null),
+        dusun: wilayah || null,
+        whatsapp: anonim ? null : (whatsapp || null),
+        kategori,
+        isi_aspirasi: isi,
+        anonim,
+        status: "Diterima",
+        tanggapan: null
+      })
+      .select("nomor_tiket,status")
+      .single();
+
+    if (error) {
+      console.error("Insert aspirasi:", error);
+      showAspMessage("❌ Gagal mengirim aspirasi: " + error.message, false);
+      return;
+    }
+
+    showAspMessage(
+      `✅ Aspirasi berhasil dikirim! Nomor Tiket Anda: ${data.nomor_tiket || "-"} Status: ${data.status || "Diterima"}. Simpan nomor tiket ini untuk mengecek perkembangan aspirasi.`
+    );
+
+    form.reset();
+  } catch (err) {
+    console.error("Kesalahan pengiriman:", err);
+    showAspMessage("❌ Terjadi kesalahan: " + (err?.message || err), false);
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "📣 Kirim Aspirasi";
+    }
+  }
+}
+
+async function checkAspiration(event) {
+  event.preventDefault();
+
+  const ticket = $("ticket")?.value?.trim();
+  const result = $("checkResult");
+
+  if (!result) return;
+
+  if (!ticket) {
+    result.innerHTML = `<div class="result ticket-result">❌ Masukkan nomor tiket.</div>`;
+    return;
+  }
+
+  result.innerHTML = `<div class="result">⏳ Mencari nomor tiket...</div>`;
+
+  const { data, error } = await supabase
+    .from("aspirasi")
+    .select("nomor_tiket,kategori,isi_aspirasi,status,tanggapan,created_at,updated_at")
+    .eq("nomor_tiket", ticket)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Cek tiket:", error);
+    result.innerHTML = `<div class="result ticket-result">❌ Gagal memeriksa tiket: ${escapeHtml(error.message)}</div>`;
+    return;
+  }
+
+  if (!data) {
+    result.innerHTML = `<div class="result ticket-result">❌ Nomor tiket tidak ditemukan.</div>`;
+    return;
+  }
+
+  result.innerHTML = `
+    <div class="result ticket-result">
+      <p><strong>Nomor Tiket:</strong> ${escapeHtml(data.nomor_tiket)}</p>
+      <p><strong>Kategori:</strong> ${escapeHtml(data.kategori)}</p>
+      <p><strong>Status:</strong> <span class="status">${escapeHtml(data.status)}</span></p>
+      <p><strong>Tanggal:</strong> ${escapeHtml(formatDate(data.created_at))}</p>
+      <p><strong>Tanggapan BPD:</strong><br>${escapeHtml(data.tanggapan || "Belum ada tanggapan.").replaceAll("\n", "<br>")}</p>
+    </div>
+  `;
+}
+
+async function init() {
+  console.log("✅ app.js BPD Desa Kendalserut berhasil dimuat.");
+
+  $("loginForm")?.addEventListener("submit", loginAdmin);
+  $("aspForm")?.addEventListener("submit", submitAspiration);
+  $("checkForm")?.addEventListener("submit", checkAspiration);
+  $("logoutBtn")?.addEventListener("click", logoutAdmin);
+
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session?.user) {
+    await loadDashboard();
+  }
+
+  supabase.auth.onAuthStateChange(async (event, sessionNow) => {
+    console.log("Auth event:", event);
+
+    if (sessionNow?.user && event === "SIGNED_IN") {
+      await loadDashboard();
+    }
+
+    if (!sessionNow && event === "SIGNED_OUT") {
+      hideDashboard();
     }
   });
 }
 
-// -----------------------------------------------------
-// SESSION LOGIN
-// -----------------------------------------------------
-async function restoreSession() {
-  try {
-    const { data } = await supabase.auth.getSession();
-
-    if (data?.session?.user) {
-      showAdminDashboard(data.session.user);
-    }
-  } catch (error) {
-    console.error("Gagal memulihkan sesi:", error);
-  }
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
 }
-
-supabase.auth.onAuthStateChange((_event, session) => {
-  if (session?.user) {
-    showAdminDashboard(session.user);
-  } else {
-    adminDash?.classList.add("hidden");
-    if (logoutBtn) logoutBtn.classList.add("hidden");
-  }
-});
-
-// -----------------------------------------------------
-// START
-// -----------------------------------------------------
-loadNews();
-restoreSession();
-
-console.log("✅ app.js BPD Desa Kendalserut berhasil dimuat.");
